@@ -23,6 +23,7 @@
       boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
       zIndex: "9999"
     });
+  
     document.body.appendChild(button);
   
     // --- Chat Window ---
@@ -54,6 +55,7 @@
         <button id="chat-send" style="background:#4F46E5;color:white;border:none;padding:8px 12px;">Send</button>
       </div>
     `;
+  
     document.body.appendChild(chatWindow);
   
     // --- Toggle Window ---
@@ -80,9 +82,8 @@
           body: JSON.stringify({ userId, message: msg })
         });
         const data = await res.json();
-        chatBody.innerHTML += `<div style="margin-top:5px;"><b>Bot:</b> ${data.response || JSON.stringify(data)}</div>`;
+        chatBody.innerHTML += `<div style="margin-top:5px;"><b>Bot:</b> ${data.response}</div>`;
       } catch (e) {
-        console.error("Chatbot error:", e);
         chatBody.innerHTML += `<div style="color:red;"><b>Bot:</b> Sorry, I'm offline.</div>`;
       }
       chatBody.scrollTop = chatBody.scrollHeight;
