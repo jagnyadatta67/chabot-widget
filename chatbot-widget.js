@@ -1,10 +1,30 @@
 (function () {
-    // --- Wait for DOM Ready ---
-    function initChatWidget() {
-      const backendUrl = document.currentScript.getAttribute("data-backend");
-      const userId = document.currentScript.getAttribute("data-userid");
+    // --- 1️⃣ Resolve script and config safely
+    const scriptTag =
+      document.currentScript ||
+      Array.from(document.querySelectorAll('script[src*="chatbot-widget.js"]')).pop();
   
-      // --- Floating Button ---
+    // Fallback to global config if attributes are missing
+    const config = {
+      backend:
+        scriptTag?.getAttribute("data-backend") ||
+        window.CHATBOT_CONFIG?.backend ||
+        "http://localhost:8080/api/chat",
+      userid:
+        scriptTag?.getAttribute("data-userid") ||
+        window.CHATBOT_CONFIG?.userid ||
+        "UNKNOWN_USER",
+    };
+  
+    // --- 2️⃣ Initialize Chat Widget
+    function initChatWidget() {
+      // Guard
+      if (!config.backend) {
+        console.error("Chatbot Widget: Missing backend URL.");
+        return;
+      }
+  
+      // --- Floating Chat Button ---
       const button = document.createElement("div");
       button.id = "chatbot-button";
       button.innerHTML = "💬";
@@ -23,7 +43,7 @@
         fontSize: "26px",
         cursor: "pointer",
         boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-        zIndex: "9999"
+        zIndex: "9999",
       });
       document.body.appendChild(button);
   
@@ -74,21 +94,19 @@
   
       const renderOrderData = (data) => {
         if (!data.orderDetailsList || data.orderDetailsList.length === 0) return;
-  
         chatBody.innerHTML += `
           <div style="margin-top:10px;padding:8px;background:#f9fafb;border-radius:6px;">
             <b>Customer:</b> ${data.customerName || "N/A"}<br/>
             <b>Mobile:</b> ${data.mobileNo || "N/A"}
           </div>
         `;
-  
-        data.orderDetailsList.forEach(order => {
+        data.orderDetailsList.forEach((order) => {
           chatBody.innerHTML += `
             <div style="margin-top:10px;border:1px solid #eee;padding:8px;border-radius:8px;background:#fff;">
               <b>Order No:</b> ${order.orderNo}<br/>
               <b>Status:</b> ${order.orderStatus}<br/>
               <b>Date:</b> ${order.orderDate}<br/>
-              <b>Total:</b> ₹${order.orderAmount?.toFixed(2) || 0}<br/>
+              <b>Total:</b> ₹${(order.orderAmount || 0).toFixed(2)}<br/>
               <b>Products:</b> ${order.totalProducts || 0}
             </div>
           `;
@@ -113,10 +131,10 @@
         chatBody.scrollTop = chatBody.scrollHeight;
   
         try {
-          const res = await fetch(backendUrl, {
+          const res = await fetch(config.backend, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, message: msg })
+            body: JSON.stringify({ userId: config.userid, message: msg }),
           });
   
           const data = await res.json();
@@ -125,7 +143,7 @@
           // Always show AI message
           if (data.chat_message) renderBotMessage(data.chat_message);
   
-          // If Hybris data present
+          // Show Hybris data if present
           renderOrderData(data);
         } catch (err) {
           typing.remove();
@@ -140,7 +158,7 @@
       });
     }
   
-    // --- DOM Ready Check ---
+    // --- 3️⃣ DOM Ready Safety
     if (document.readyState === "loading") {
       window.addEventListener("DOMContentLoaded", initChatWidget);
     } else {
