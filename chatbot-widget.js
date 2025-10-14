@@ -1,5 +1,5 @@
 (function () {
-    // Wait for DOM to load before running widget
+    // --- Wait for DOM Ready ---
     function initChatWidget() {
       const backendUrl = document.currentScript.getAttribute("data-backend");
       const userId = document.currentScript.getAttribute("data-userid");
@@ -66,40 +66,37 @@
       const input = chatWindow.querySelector("#chat-input");
       const send = chatWindow.querySelector("#chat-send");
   
-      // --- Helper: Render Bot Message ---
-      function renderBotMessage(message) {
-        chatBody.innerHTML += `<div style="margin-top:5px;"><b>Bot:</b> ${message}</div>`;
+      // --- Render Helpers ---
+      const renderBotMessage = (msg) => {
+        chatBody.innerHTML += `<div style="margin-top:8px;"><b>Bot:</b> ${msg}</div>`;
         chatBody.scrollTop = chatBody.scrollHeight;
-      }
+      };
   
-      // --- Helper: Render Orders if Present ---
-      function renderOrderData(data) {
-        if (data.orderDetailsList && data.orderDetailsList.length > 0) {
-          const customerInfo = `
-            <div style="margin-top:10px;padding:8px;background:#f9fafb;border-radius:6px;">
-              <b>Customer:</b> ${data.customerName || "N/A"}<br/>
-              <b>Mobile:</b> ${data.mobileNo || "N/A"}
+      const renderOrderData = (data) => {
+        if (!data.orderDetailsList || data.orderDetailsList.length === 0) return;
+  
+        chatBody.innerHTML += `
+          <div style="margin-top:10px;padding:8px;background:#f9fafb;border-radius:6px;">
+            <b>Customer:</b> ${data.customerName || "N/A"}<br/>
+            <b>Mobile:</b> ${data.mobileNo || "N/A"}
+          </div>
+        `;
+  
+        data.orderDetailsList.forEach(order => {
+          chatBody.innerHTML += `
+            <div style="margin-top:10px;border:1px solid #eee;padding:8px;border-radius:8px;background:#fff;">
+              <b>Order No:</b> ${order.orderNo}<br/>
+              <b>Status:</b> ${order.orderStatus}<br/>
+              <b>Date:</b> ${order.orderDate}<br/>
+              <b>Total:</b> ₹${order.orderAmount?.toFixed(2) || 0}<br/>
+              <b>Products:</b> ${order.totalProducts || 0}
             </div>
           `;
-          chatBody.innerHTML += customerInfo;
+        });
+        chatBody.scrollTop = chatBody.scrollHeight;
+      };
   
-          data.orderDetailsList.forEach(order => {
-            const card = `
-              <div style="margin-top:10px;border:1px solid #eee;padding:8px;border-radius:8px;background:#fefefe;">
-                <b>Order No:</b> ${order.orderNo}<br/>
-                <b>Status:</b> ${order.orderStatus}<br/>
-                <b>Date:</b> ${order.orderDate}<br/>
-                <b>Total:</b> ₹${order.orderAmount.toFixed(2)}<br/>
-                <b>Products:</b> ${order.totalProducts}
-              </div>
-            `;
-            chatBody.innerHTML += card;
-          });
-          chatBody.scrollTop = chatBody.scrollHeight;
-        }
-      }
-  
-      // --- Send Message Function ---
+      // --- Send Message ---
       async function sendMessage() {
         const msg = input.value.trim();
         if (!msg) return;
@@ -108,10 +105,10 @@
         input.value = "";
         chatBody.scrollTop = chatBody.scrollHeight;
   
-        // Show typing animation
+        // Typing indicator
         const typing = document.createElement("div");
-        typing.id = "typing-indicator";
-        typing.innerHTML = `<i>Bot is typing...</i>`;
+        typing.id = "typing";
+        typing.innerHTML = "<i>Bot is typing...</i>";
         chatBody.appendChild(typing);
         chatBody.scrollTop = chatBody.scrollHeight;
   
@@ -125,26 +122,25 @@
           const data = await res.json();
           typing.remove();
   
-          // 1️⃣ Always show chat_message (AI response)
-          if (data.chat_message) {
-            renderBotMessage(data.chat_message);
-          }
+          // Always show AI message
+          if (data.chat_message) renderBotMessage(data.chat_message);
   
-          // 2️⃣ If Hybris data present, show order details
+          // If Hybris data present
           renderOrderData(data);
-  
-        } catch (e) {
+        } catch (err) {
           typing.remove();
           renderBotMessage("<span style='color:red;'>Sorry, I’m offline right now.</span>");
-          console.error("Chatbot error:", e);
+          console.error("Chatbot Error:", err);
         }
       }
   
       send.onclick = sendMessage;
-      input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
     }
   
-    // Wait for DOM readiness
+    // --- DOM Ready Check ---
     if (document.readyState === "loading") {
       window.addEventListener("DOMContentLoaded", initChatWidget);
     } else {
