@@ -1,5 +1,4 @@
 (function () {
-  // --- 1️⃣ Resolve script and config safely
   const scriptTag =
     document.currentScript ||
     Array.from(document.querySelectorAll('script[src*="chatbot-widget.js"]')).pop();
@@ -15,14 +14,13 @@
       "UNKNOWN_USER",
   };
 
-  // --- 2️⃣ Initialize Chat Widget
   function initChatWidget() {
     if (!config.backend) {
       console.error("Chatbot Widget: Missing backend URL.");
       return;
     }
 
-    // --- Floating Chat Button ---
+    // --- Floating Button ---
     const button = document.createElement("div");
     button.id = "chatbot-button";
     button.innerHTML = "💬";
@@ -85,10 +83,9 @@
       if (chatWindow.style.display === "flex") showGreeting();
     };
 
-    // --- 3️⃣ Helper Functions ---
+    // --- Helper Functions ---
     const clearBody = () => (chatBody.innerHTML = "");
     const renderBotMessage = (msg) => {
-      // Markdown-like simple rendering
       msg = msg
         .replace(/### (.*$)/gim, "<b>$1</b>")
         .replace(/\*\*(.*?)\*\*/gim, "<b>$1</b>")
@@ -116,19 +113,19 @@
         width: "100%",
       });
       backBtn.onclick = () => {
-        inputContainer.style.display = "none";
         document.getElementById("back-to-main")?.remove();
+        inputContainer.style.display = "none";
         showGreeting();
       };
       chatBody.appendChild(backBtn);
     };
 
-    // --- 4️⃣ Fetch Menus & Submenus ---
+    // --- Fetch Menus ---
     async function fetchMenus() {
       try {
         const res = await fetch(`${config.backend}/menus`);
         return await res.json();
-      } catch (err) {
+      } catch {
         renderBotMessage("⚠️ Unable to load menu right now.");
         return [];
       }
@@ -138,13 +135,13 @@
       try {
         const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
         return await res.json();
-      } catch (err) {
+      } catch {
         renderBotMessage("⚠️ Unable to load submenu.");
         return [];
       }
     }
 
-    // --- 5️⃣ Show Greeting & Main Menu ---
+    // --- Greeting ---
     async function showGreeting() {
       clearBody();
       renderBotMessage("Hi and welcome to LMG Chat Service 👋");
@@ -172,7 +169,7 @@
       inputContainer.style.display = "none";
     }
 
-    // --- 6️⃣ Show Submenus ---
+    // --- Show Submenus ---
     async function showSubMenus(menu) {
       renderUserMessage(menu.title);
       clearBody();
@@ -206,7 +203,7 @@
       showBackToMainMenu();
     }
 
-    // --- 7️⃣ Handle submenu selection (show input) ---
+    // --- Handle submenu selection ---
     function handleSubmenu(sub) {
       renderUserMessage(sub.title);
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
@@ -230,12 +227,10 @@
       });
     }
 
-    // --- 8️⃣ Handle Chat API Responses with Intents ---
+    // --- Send Message ---
     async function sendMessage(type, userMessage) {
       const endpoint = type === "static" ? "/chat/ask" : "/chat";
       const url = `${config.backend}${endpoint}`;
-
-      renderBotMessage("⏳ Processing your request...");
 
       try {
         const res = await fetch(url, {
@@ -255,35 +250,27 @@
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
         const payload = json.data || json;
 
-        chatBody.innerHTML += `<hr style="border:none;border-top:1px solid #eee;margin:8px 0;">`;
+        // 🧹 Clear old UI before painting new
+        clearBody();
 
-        // --- POLICY or GENERAL ---
         if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
-          const message =
+          renderBotMessage(
             typeof payload === "string"
               ? payload
-              : payload.data || payload.chat_message || "No response.";
-          renderBotMessage(message);
-          inputContainer.style.display = "flex";
-        }
-
-        // --- ORDER TRACKING ---
-        else if (intent === "ORDER_TRACKING") {
+              : payload.data || payload.chat_message || "No information available."
+          );
+        } else if (intent === "ORDER_TRACKING") {
           const data = payload;
-
           if (data.chat_message && data.chat_message.trim()) {
             renderBotMessage(data.chat_message);
           } else {
-            if (data.customerName || data.mobileNo) {
-              renderBotMessage("<b>🧾 Customer Details:</b>");
-              chatBody.innerHTML += `
-                <div style="margin:8px 0;padding:8px;background:#F3F4F6;border-radius:8px;">
-                  <b>Name:</b> ${data.customerName || "N/A"}<br/>
-                  <b>Mobile:</b> ${data.mobileNo || "N/A"}
-                </div>
-              `;
-            }
-
+            renderBotMessage("<b>🧾 Customer Details:</b>");
+            chatBody.innerHTML += `
+              <div style="margin:8px 0;padding:8px;background:#F3F4F6;border-radius:8px;">
+                <b>Name:</b> ${data.customerName || "N/A"}<br/>
+                <b>Mobile:</b> ${data.mobileNo || "N/A"}
+              </div>
+            `;
             if (Array.isArray(data.orderDetailsList) && data.orderDetailsList.length > 0) {
               renderBotMessage("<b>📦 Order Summary:</b>");
               data.orderDetailsList.forEach((order) => {
@@ -301,18 +288,11 @@
               renderBotMessage("No order details found for your account.");
             }
           }
-          inputContainer.style.display = "flex";
-        }
-
-        // --- Fallback ---
-        else {
+        } else {
           renderBotMessage("I didn’t quite understand that. Could you rephrase?");
-          inputContainer.style.display = "flex";
         }
 
-        // Always show back button
         showBackToMainMenu();
-
       } catch (err) {
         console.error("Chat Error:", err);
         renderBotMessage("⚠️ Something went wrong while processing your request.");
@@ -324,7 +304,6 @@
     showGreeting();
   }
 
-  // --- 9️⃣ DOM Ready
   if (document.readyState === "loading") {
     window.addEventListener("DOMContentLoaded", initChatWidget);
   } else {
