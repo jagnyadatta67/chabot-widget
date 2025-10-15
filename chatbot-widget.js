@@ -243,24 +243,21 @@ async function sendMessage(type, userMessage) {
             }),
     });
 
-    // Try parsing JSON safely
     let data;
     try {
       data = await res.json();
     } catch (err) {
       const text = await res.text();
       renderBotMessage(text || "No response received.");
-      showBackToMainMenu();
-      inputContainer.style.display = "none";
       return;
     }
 
-    // 1️⃣ If chat_message exists
+    // --- 1️⃣ Handle chat_message ---
     if (data.chat_message) {
       renderBotMessage(data.chat_message);
     }
 
-    // 2️⃣ If order info exists
+    // --- 2️⃣ Handle structured order data ---
     if (data.customerName || data.mobileNo || (data.orderDetailsList && data.orderDetailsList.length)) {
       renderBotMessage("<b>🧾 Customer Details:</b>");
       chatBody.innerHTML += `
@@ -286,18 +283,30 @@ async function sendMessage(type, userMessage) {
       }
     }
 
-    // 3️⃣ If no structured fields found → fallback
-    if (!data.chat_message && !data.orderDetailsList) {
-      renderBotMessage(typeof data === "string" ? data : "No response available.");
+    // --- 3️⃣ Handle plain fallback text ---
+    const plainText =
+      typeof data === "string"
+        ? data
+        : data.chat_message || data.message || "";
+
+    // --- 4️⃣ Conditional: show back to menu only if fallback message appears ---
+    const fallbackMsg =
+      "I don’t have enough information to answer that. You can call 1800-123-1555 to get more information.";
+
+    if (plainText && plainText.trim() === fallbackMsg.trim()) {
+      renderBotMessage(plainText);
+      inputContainer.style.display = "none";
+      showBackToMainMenu();
+    } else if (!data.chat_message && !data.orderDetailsList && plainText) {
+      // If normal answer, keep chat input open
+      renderBotMessage(plainText);
+      inputContainer.style.display = "flex";
     }
 
   } catch (err) {
     console.error(err);
     renderBotMessage("⚠️ Something went wrong. Please try again.");
   }
-
-  showBackToMainMenu();
-  inputContainer.style.display = "none";
 }
 
 
