@@ -62,11 +62,37 @@
       z-index: 9999;
     `;
     chatWindow.innerHTML = `
-      <div style="background:#4F46E5;color:#fff;padding:10px;font-weight:bold;">LMG Chat Service</div>
-      <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;"></div>
+      <style>
+        .bubble {
+          animation: fadeIn 0.3s ease;
+          background: #f1f1f1;
+          border-radius: 10px;
+          padding: 8px 10px;
+          margin: 5px 0;
+          display: inline-block;
+          max-width: 90%;
+          line-height: 1.4;
+        }
+        .user-bubble {
+          background: #E0E7FF;
+          align-self: flex-end;
+          color: #111;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      </style>
+      <div style="background:#4F46E5;color:#fff;padding:10px;font-weight:bold;position:relative;">
+        LMG Chat Service
+      </div>
+      <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;display:flex;flex-direction:column;"></div>
       <div id="chat-input-container" style="display:none;border-top:1px solid #ddd;flex-shrink:0;">
         <input id="chat-input" style="width:80%;padding:8px;border:none;font-size:14px;" placeholder="Type your message..." />
         <button id="chat-send" style="width:20%;background:#4F46E5;color:#fff;border:none;">Send</button>
+      </div>
+      <div id="sticky-back-container" style="position:sticky;bottom:0;background:#fff;padding:6px;border-top:1px solid #eee;display:none;">
+        <button id="back-to-main" style="width:100%;background:#4F46E5;color:#fff;border:none;padding:8px 0;border-radius:8px;cursor:pointer;">⬅️ Back to Main Menu</button>
       </div>
     `;
     document.body.appendChild(chatWindow);
@@ -75,52 +101,61 @@
     const inputContainer = chatWindow.querySelector("#chat-input-container");
     const inputField = chatWindow.querySelector("#chat-input");
     const sendButton = chatWindow.querySelector("#chat-send");
+    const backButtonContainer = chatWindow.querySelector("#sticky-back-container");
+    const backButton = chatWindow.querySelector("#back-to-main");
 
-    // --- Toggle Window ---
+    // --- Typing indicator helpers ---
+    function showTyping() {
+      const typing = document.createElement("div");
+      typing.id = "bot-typing";
+      typing.innerHTML = "<i>Bot is typing...</i>";
+      typing.style.color = "#666";
+      typing.style.margin = "8px 0";
+      chatBody.appendChild(typing);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+    function hideTyping() {
+      const t = document.getElementById("bot-typing");
+      if (t) t.remove();
+    }
+
+    // --- Window toggle ---
     button.onclick = () => {
       chatWindow.style.display =
         chatWindow.style.display === "flex" ? "none" : "flex";
       if (chatWindow.style.display === "flex") showGreeting();
     };
 
-    // --- Helper Functions ---
+    // --- Helper functions ---
     const clearBody = () => (chatBody.innerHTML = "");
     const renderBotMessage = (msg) => {
       msg = msg
         .replace(/### (.*$)/gim, "<b>$1</b>")
         .replace(/\*\*(.*?)\*\*/gim, "<b>$1</b>")
         .replace(/\n/g, "<br/>");
-      chatBody.innerHTML += `<div style="margin:8px 0;"><b>Bot:</b> ${msg}</div>`;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerHTML = `<b>Bot:</b> ${msg}`;
+      chatBody.appendChild(bubble);
       chatBody.scrollTop = chatBody.scrollHeight;
     };
     const renderUserMessage = (msg) => {
-      chatBody.innerHTML += `<div style="text-align:right;margin:8px 0;"><b>You:</b> ${msg}</div>`;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble user-bubble";
+      bubble.innerHTML = `<b>You:</b> ${msg}`;
+      chatBody.appendChild(bubble);
       chatBody.scrollTop = chatBody.scrollHeight;
     };
+
     const showBackToMainMenu = () => {
-      if (document.getElementById("back-to-main")) return;
-      const backBtn = document.createElement("button");
-      backBtn.id = "back-to-main";
-      backBtn.textContent = "⬅️ Back to Main Menu";
-      Object.assign(backBtn.style, {
-        marginTop: "10px",
-        padding: "8px 12px",
-        background: "#4F46E5",
-        color: "#fff",
-        border: "none",
-        borderRadius: "8px",
-        cursor: "pointer",
-        width: "100%",
-      });
-      backBtn.onclick = () => {
-        document.getElementById("back-to-main")?.remove();
+      backButtonContainer.style.display = "block";
+      backButton.onclick = () => {
         inputContainer.style.display = "none";
         showGreeting();
       };
-      chatBody.appendChild(backBtn);
     };
 
-    // --- Fetch Menus ---
+    // --- Menu Fetchers ---
     async function fetchMenus() {
       try {
         const res = await fetch(`${config.backend}/menus`);
@@ -167,6 +202,7 @@
         chatBody.appendChild(btn);
       });
       inputContainer.style.display = "none";
+      showBackToMainMenu();
     }
 
     // --- Show Submenus ---
@@ -232,6 +268,8 @@
       const endpoint = type === "static" ? "/chat/ask" : "/chat";
       const url = `${config.backend}${endpoint}`;
 
+      showTyping();
+
       try {
         const res = await fetch(url, {
           method: "POST",
@@ -250,7 +288,7 @@
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
         const payload = json.data || json;
 
-        // 🧹 Clear old UI before painting new
+        hideTyping();
         clearBody();
 
         if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
@@ -266,7 +304,7 @@
           } else {
             renderBotMessage("<b>🧾 Customer Details:</b>");
             chatBody.innerHTML += `
-              <div style="margin:8px 0;padding:8px;background:#F3F4F6;border-radius:8px;">
+              <div class="bubble">
                 <b>Name:</b> ${data.customerName || "N/A"}<br/>
                 <b>Mobile:</b> ${data.mobileNo || "N/A"}
               </div>
@@ -275,7 +313,7 @@
               renderBotMessage("<b>📦 Order Summary:</b>");
               data.orderDetailsList.forEach((order) => {
                 chatBody.innerHTML += `
-                  <div style="margin-top:10px;padding:8px;background:#fff;border:1px solid #ddd;border-radius:8px;">
+                  <div class="bubble">
                     <b>Order No:</b> ${order.orderNo || "N/A"}<br/>
                     <b>Status:</b> ${order.orderStatus || "N/A"}<br/>
                     <b>Date:</b> ${order.orderDate || "N/A"}<br/>
@@ -294,6 +332,7 @@
 
         showBackToMainMenu();
       } catch (err) {
+        hideTyping();
         console.error("Chat Error:", err);
         renderBotMessage("⚠️ Something went wrong while processing your request.");
         showBackToMainMenu();
