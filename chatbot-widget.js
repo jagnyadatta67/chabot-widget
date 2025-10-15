@@ -88,6 +88,11 @@
     // --- 3️⃣ Helper Functions ---
     const clearBody = () => (chatBody.innerHTML = "");
     const renderBotMessage = (msg) => {
+      // Markdown-like simple rendering
+      msg = msg
+        .replace(/### (.*$)/gim, "<b>$1</b>")
+        .replace(/\*\*(.*?)\*\*/gim, "<b>$1</b>")
+        .replace(/\n/g, "<br/>");
       chatBody.innerHTML += `<div style="margin:8px 0;"><b>Bot:</b> ${msg}</div>`;
       chatBody.scrollTop = chatBody.scrollHeight;
     };
@@ -96,7 +101,9 @@
       chatBody.scrollTop = chatBody.scrollHeight;
     };
     const showBackToMainMenu = () => {
+      if (document.getElementById("back-to-main")) return;
       const backBtn = document.createElement("button");
+      backBtn.id = "back-to-main";
       backBtn.textContent = "⬅️ Back to Main Menu";
       Object.assign(backBtn.style, {
         marginTop: "10px",
@@ -110,6 +117,7 @@
       });
       backBtn.onclick = () => {
         inputContainer.style.display = "none";
+        document.getElementById("back-to-main")?.remove();
         showGreeting();
       };
       chatBody.appendChild(backBtn);
@@ -222,93 +230,95 @@
       });
     }
 
-// --- 8️⃣ Send Message Based on Type ---
-async function sendMessage(type, userMessage) {
-  const endpoint = type === "static" ? "/chat/ask" : "";
-  const url = `${config.backend}${endpoint}`;
+    // --- 8️⃣ Handle Chat API Responses with Intents ---
+    async function sendMessage(type, userMessage) {
+      const endpoint = type === "static" ? "/chat/ask" : "/chat";
+      const url = `${config.backend}${endpoint}`;
 
-  renderBotMessage("⏳ Processing your request...");
+      renderBotMessage("⏳ Processing your request...");
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body:
-        type === "static"
-          ? JSON.stringify({ question: userMessage })
-          : JSON.stringify({
-              message: userMessage,
-              question: userMessage,
-              userId: config.userid,
-            }),
-    });
-
-    let data;
-    try {
-      data = await res.json();
-    } catch (err) {
-      const text = await res.text();
-      renderBotMessage(text || "No response received.");
-      return;
-    }
-
-    // --- 1️⃣ Handle chat_message ---
-    if (data.chat_message) {
-      renderBotMessage(data.chat_message);
-    }
-
-    // --- 2️⃣ Handle structured order data ---
-    if (data.customerName || data.mobileNo || (data.orderDetailsList && data.orderDetailsList.length)) {
-      renderBotMessage("<b>🧾 Customer Details:</b>");
-      chatBody.innerHTML += `
-        <div style="margin:8px 0;padding:8px;background:#F3F4F6;border-radius:8px;">
-          <b>Name:</b> ${data.customerName || "N/A"}<br/>
-          <b>Mobile:</b> ${data.mobileNo || "N/A"}
-        </div>
-      `;
-
-      if (Array.isArray(data.orderDetailsList) && data.orderDetailsList.length > 0) {
-        renderBotMessage("<b>📦 Order Summary:</b>");
-        data.orderDetailsList.forEach((order) => {
-          chatBody.innerHTML += `
-            <div style="margin-top:10px;padding:8px;background:#fff;border:1px solid #ddd;border-radius:8px;">
-              <b>Order No:</b> ${order.orderNo || "N/A"}<br/>
-              <b>Status:</b> ${order.orderStatus || "N/A"}<br/>
-              <b>Date:</b> ${order.orderDate || "N/A"}<br/>
-              <b>Total:</b> ₹${order.orderAmount ? order.orderAmount.toFixed(2) : "0.00"}<br/>
-              <b>Products:</b> ${order.totalProducts || 0}
-            </div>
-          `;
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body:
+            type === "static"
+              ? JSON.stringify({ question: userMessage })
+              : JSON.stringify({
+                  message: userMessage,
+                  question: userMessage,
+                  userId: config.userid,
+                }),
         });
+
+        const json = await res.json();
+        const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
+        const payload = json.data || json;
+
+        chatBody.innerHTML += `<hr style="border:none;border-top:1px solid #eee;margin:8px 0;">`;
+
+        // --- POLICY or GENERAL ---
+        if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
+          const message =
+            typeof payload === "string"
+              ? payload
+              : payload.data || payload.chat_message || "No response.";
+          renderBotMessage(message);
+          inputContainer.style.display = "flex";
+        }
+
+        // --- ORDER TRACKING ---
+        else if (intent === "ORDER_TRACKING") {
+          const data = payload;
+
+          if (data.chat_message && data.chat_message.trim()) {
+            renderBotMessage(data.chat_message);
+          } else {
+            if (data.customerName || data.mobileNo) {
+              renderBotMessage("<b>🧾 Customer Details:</b>");
+              chatBody.innerHTML += `
+                <div style="margin:8px 0;padding:8px;background:#F3F4F6;border-radius:8px;">
+                  <b>Name:</b> ${data.customerName || "N/A"}<br/>
+                  <b>Mobile:</b> ${data.mobileNo || "N/A"}
+                </div>
+              `;
+            }
+
+            if (Array.isArray(data.orderDetailsList) && data.orderDetailsList.length > 0) {
+              renderBotMessage("<b>📦 Order Summary:</b>");
+              data.orderDetailsList.forEach((order) => {
+                chatBody.innerHTML += `
+                  <div style="margin-top:10px;padding:8px;background:#fff;border:1px solid #ddd;border-radius:8px;">
+                    <b>Order No:</b> ${order.orderNo || "N/A"}<br/>
+                    <b>Status:</b> ${order.orderStatus || "N/A"}<br/>
+                    <b>Date:</b> ${order.orderDate || "N/A"}<br/>
+                    <b>Total:</b> ₹${order.orderAmount ? order.orderAmount.toFixed(2) : "0.00"}<br/>
+                    <b>Products:</b> ${order.totalProducts || 0}
+                  </div>
+                `;
+              });
+            } else {
+              renderBotMessage("No order details found for your account.");
+            }
+          }
+          inputContainer.style.display = "flex";
+        }
+
+        // --- Fallback ---
+        else {
+          renderBotMessage("I didn’t quite understand that. Could you rephrase?");
+          inputContainer.style.display = "flex";
+        }
+
+        // Always show back button
+        showBackToMainMenu();
+
+      } catch (err) {
+        console.error("Chat Error:", err);
+        renderBotMessage("⚠️ Something went wrong while processing your request.");
+        showBackToMainMenu();
       }
     }
-
-    // --- 3️⃣ Handle plain fallback text ---
-    const plainText =
-      typeof data === "string"
-        ? data
-        : data.chat_message || data.message || "";
-
-    // --- 4️⃣ Conditional: show back to menu only if fallback message appears ---
-    const fallbackMsg =
-      "I don’t have enough information to answer that. You can call 1800-123-1555 to get more information.";
-
-    if (plainText && plainText.trim() === fallbackMsg.trim()) {
-      renderBotMessage(plainText);
-      inputContainer.style.display = "none";
-      showBackToMainMenu();
-    } else if (!data.chat_message && !data.orderDetailsList && plainText) {
-      // If normal answer, keep chat input open
-      renderBotMessage(plainText);
-      inputContainer.style.display = "flex";
-    }
-
-  } catch (err) {
-    console.error(err);
-    renderBotMessage("⚠️ Something went wrong. Please try again.");
-  }
-}
-
 
     // --- Initialize ---
     showGreeting();
