@@ -222,36 +222,84 @@
       });
     }
 
-    // --- 8️⃣ Send Message Based on Type ---
-    async function sendMessage(type, userMessage) {
-      const endpoint = type === "static" ? "/ask" : "";
-      const url = `${config.backend}${endpoint}`;
+// --- 8️⃣ Send Message Based on Type ---
+async function sendMessage(type, userMessage) {
+  const endpoint = type === "static" ? "/chat/ask" : "/chat";
+  const url = `${config.backend}${endpoint}`;
 
-      renderBotMessage("⏳ Processing your request...");
+  renderBotMessage("⏳ Processing your request...");
 
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body:
-            type === "static"
-              ? JSON.stringify({ question: userMessage })
-              : JSON.stringify({
-                  message: userMessage,
-                  question: userMessage,
-                }),
-        });
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body:
+        type === "static"
+          ? JSON.stringify({ question: userMessage })
+          : JSON.stringify({
+              message: userMessage,
+              question: userMessage,
+              userId: config.userid,
+            }),
+    });
 
-        const data = await res.text();
-        renderBotMessage(data || "No response received.");
-      } catch (err) {
-        console.error(err);
-        renderBotMessage("⚠️ Something went wrong. Please try again.");
-      }
-
+    // Try parsing JSON safely
+    let data;
+    try {
+      data = await res.json();
+    } catch (err) {
+      const text = await res.text();
+      renderBotMessage(text || "No response received.");
       showBackToMainMenu();
       inputContainer.style.display = "none";
+      return;
     }
+
+    // 1️⃣ If chat_message exists
+    if (data.chat_message) {
+      renderBotMessage(data.chat_message);
+    }
+
+    // 2️⃣ If order info exists
+    if (data.customerName || data.mobileNo || (data.orderDetailsList && data.orderDetailsList.length)) {
+      renderBotMessage("<b>🧾 Customer Details:</b>");
+      chatBody.innerHTML += `
+        <div style="margin:8px 0;padding:8px;background:#F3F4F6;border-radius:8px;">
+          <b>Name:</b> ${data.customerName || "N/A"}<br/>
+          <b>Mobile:</b> ${data.mobileNo || "N/A"}
+        </div>
+      `;
+
+      if (Array.isArray(data.orderDetailsList) && data.orderDetailsList.length > 0) {
+        renderBotMessage("<b>📦 Order Summary:</b>");
+        data.orderDetailsList.forEach((order) => {
+          chatBody.innerHTML += `
+            <div style="margin-top:10px;padding:8px;background:#fff;border:1px solid #ddd;border-radius:8px;">
+              <b>Order No:</b> ${order.orderNo || "N/A"}<br/>
+              <b>Status:</b> ${order.orderStatus || "N/A"}<br/>
+              <b>Date:</b> ${order.orderDate || "N/A"}<br/>
+              <b>Total:</b> ₹${order.orderAmount ? order.orderAmount.toFixed(2) : "0.00"}<br/>
+              <b>Products:</b> ${order.totalProducts || 0}
+            </div>
+          `;
+        });
+      }
+    }
+
+    // 3️⃣ If no structured fields found → fallback
+    if (!data.chat_message && !data.orderDetailsList) {
+      renderBotMessage(typeof data === "string" ? data : "No response available.");
+    }
+
+  } catch (err) {
+    console.error(err);
+    renderBotMessage("⚠️ Something went wrong. Please try again.");
+  }
+
+  showBackToMainMenu();
+  inputContainer.style.display = "none";
+}
+
 
     // --- Initialize ---
     showGreeting();
