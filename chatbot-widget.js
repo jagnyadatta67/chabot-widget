@@ -224,7 +224,7 @@
 
     // --- 8️⃣ Send Message Based on Type ---
     async function sendMessage(type, userMessage) {
-      const endpoint = type === "static" ? "/ask" : "/";
+      const endpoint = type === "static" ? "/ask" : "";
       const url = `${config.backend}${endpoint}`;
 
       renderBotMessage("⏳ Processing your request...");
