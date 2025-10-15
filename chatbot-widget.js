@@ -15,10 +15,7 @@
   };
 
   function initChatWidget() {
-    if (!config.backend) {
-      console.error("Chatbot Widget: Missing backend URL.");
-      return;
-    }
+    let lastBotResponse = ""; // 🧠 memory to store previous bot message
 
     // --- Floating Button ---
     const button = document.createElement("div");
@@ -83,9 +80,7 @@
           to { opacity: 1; transform: translateY(0); }
         }
       </style>
-      <div style="background:#4F46E5;color:#fff;padding:10px;font-weight:bold;position:relative;">
-        LMG Chat Service
-      </div>
+      <div style="background:#4F46E5;color:#fff;padding:10px;font-weight:bold;">LMG Chat Service</div>
       <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;display:flex;flex-direction:column;"></div>
       <div id="chat-input-container" style="display:none;border-top:1px solid #ddd;flex-shrink:0;">
         <input id="chat-input" style="width:80%;padding:8px;border:none;font-size:14px;" placeholder="Type your message..." />
@@ -129,6 +124,7 @@
     // --- Helper functions ---
     const clearBody = () => (chatBody.innerHTML = "");
     const renderBotMessage = (msg) => {
+      lastBotResponse = msg; // 💾 remember last message
       msg = msg
         .replace(/### (.*$)/gim, "<b>$1</b>")
         .replace(/\*\*(.*?)\*\*/gim, "<b>$1</b>")
@@ -271,17 +267,20 @@
       showTyping();
 
       try {
+        const bodyPayload =
+          type === "static"
+            ? { question: userMessage }
+            : {
+                message: userMessage,
+                previousResponse: lastBotResponse, // 🧠 send previous context
+                question: userMessage,
+                userId: config.userid,
+              };
+
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body:
-            type === "static"
-              ? JSON.stringify({ question: userMessage })
-              : JSON.stringify({
-                  message: userMessage,
-                  question: userMessage,
-                  userId: config.userid,
-                }),
+          body: JSON.stringify(bodyPayload),
         });
 
         const json = await res.json();
