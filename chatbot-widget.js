@@ -53,7 +53,7 @@
       bottom: 90px;
       right: 25px;
       width: 340px;
-      height: 460px;
+      height: 480px;
       background: #fff;
       border-radius: 14px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
@@ -64,22 +64,28 @@
       z-index: 9999;
     `;
     chatWindow.innerHTML = `
-      <div style="background:#4F46E5;color:#fff;padding:10px;font-weight:bold;">
-        LMG Chat Service
-      </div>
+      <div style="background:#4F46E5;color:#fff;padding:10px;font-weight:bold;">LMG Chat Service</div>
       <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;font-size:14px;"></div>
+      <div id="chat-input-container" style="display:none;border-top:1px solid #ddd;flex-shrink:0;">
+        <input id="chat-input" style="width:80%;padding:8px;border:none;font-size:14px;" placeholder="Type your message..." />
+        <button id="chat-send" style="width:20%;background:#4F46E5;color:#fff;border:none;">Send</button>
+      </div>
     `;
     document.body.appendChild(chatWindow);
 
+    const chatBody = chatWindow.querySelector("#chat-body");
+    const inputContainer = chatWindow.querySelector("#chat-input-container");
+    const inputField = chatWindow.querySelector("#chat-input");
+    const sendButton = chatWindow.querySelector("#chat-send");
+
+    // --- Toggle Window ---
     button.onclick = () => {
       chatWindow.style.display =
         chatWindow.style.display === "flex" ? "none" : "flex";
       if (chatWindow.style.display === "flex") showGreeting();
     };
 
-    const chatBody = chatWindow.querySelector("#chat-body");
-
-    // --- 3️⃣ Render Helpers ---
+    // --- 3️⃣ Helper Functions ---
     const clearBody = () => (chatBody.innerHTML = "");
     const renderBotMessage = (msg) => {
       chatBody.innerHTML += `<div style="margin:8px 0;"><b>Bot:</b> ${msg}</div>`;
@@ -89,43 +95,54 @@
       chatBody.innerHTML += `<div style="text-align:right;margin:8px 0;"><b>You:</b> ${msg}</div>`;
       chatBody.scrollTop = chatBody.scrollHeight;
     };
+    const showBackToMainMenu = () => {
+      const backBtn = document.createElement("button");
+      backBtn.textContent = "⬅️ Back to Main Menu";
+      Object.assign(backBtn.style, {
+        marginTop: "10px",
+        padding: "8px 12px",
+        background: "#4F46E5",
+        color: "#fff",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+        width: "100%",
+      });
+      backBtn.onclick = () => {
+        inputContainer.style.display = "none";
+        showGreeting();
+      };
+      chatBody.appendChild(backBtn);
+    };
 
-    // --- 4️⃣ Fetch Menu List from Backend ---
+    // --- 4️⃣ Fetch Menus & Submenus ---
     async function fetchMenus() {
       try {
         const res = await fetch(`${config.backend}/menus`);
-        const menus = await res.json();
-        return menus;
+        return await res.json();
       } catch (err) {
-        console.error("Menu fetch failed:", err);
-        renderBotMessage("⚠️ Unable to load menu right now. Please try later.");
+        renderBotMessage("⚠️ Unable to load menu right now.");
         return [];
       }
     }
 
-    // --- 5️⃣ Fetch Submenus ---
     async function fetchSubMenus(menuId) {
       try {
         const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
-        const submenus = await res.json();
-        return submenus;
+        return await res.json();
       } catch (err) {
-        console.error("Submenu fetch failed:", err);
-        renderBotMessage("⚠️ Unable to load submenu. Try again later.");
+        renderBotMessage("⚠️ Unable to load submenu.");
         return [];
       }
     }
 
-    // --- 6️⃣ Show Greeting + Menu List ---
+    // --- 5️⃣ Show Greeting & Main Menu ---
     async function showGreeting() {
       clearBody();
       renderBotMessage("Hi and welcome to LMG Chat Service 👋");
-
-      const menus = await fetchMenus();
-      if (!menus.length) return;
-
       renderBotMessage("Please choose one of the following options:");
 
+      const menus = await fetchMenus();
       menus.forEach((menu) => {
         const btn = document.createElement("button");
         btn.textContent = menu.title;
@@ -144,9 +161,10 @@
         btn.onclick = () => showSubMenus(menu);
         chatBody.appendChild(btn);
       });
+      inputContainer.style.display = "none";
     }
 
-    // --- 7️⃣ Show Submenus for a Selected Menu ---
+    // --- 6️⃣ Show Submenus ---
     async function showSubMenus(menu) {
       renderUserMessage(menu.title);
       clearBody();
@@ -154,7 +172,8 @@
 
       const submenus = await fetchSubMenus(menu.id);
       if (!submenus.length) {
-        renderBotMessage("No sub-options found for this category.");
+        renderBotMessage("No sub-options found.");
+        showBackToMainMenu();
         return;
       }
 
@@ -173,38 +192,72 @@
           textAlign: "left",
           fontSize: "14px",
         });
-        btn.onclick = () => {
-          renderUserMessage(sub.title);
-          renderBotMessage(
-            sub.type === "dynamic"
-              ? "⚙️ This is a dynamic option — fetching details..."
-              : `📄 Showing ${sub.title} policy details (static content).`
-          );
-        };
+        btn.onclick = () => handleSubmenu(sub);
         chatBody.appendChild(btn);
       });
-
-      const backBtn = document.createElement("button");
-      backBtn.textContent = "⬅️ Back to Main Menu";
-      Object.assign(backBtn.style, {
-        marginTop: "10px",
-        padding: "8px 12px",
-        background: "#4F46E5",
-        color: "#fff",
-        border: "none",
-        borderRadius: "8px",
-        cursor: "pointer",
-        width: "100%",
-      });
-      backBtn.onclick = showGreeting;
-      chatBody.appendChild(backBtn);
+      showBackToMainMenu();
     }
 
-    // Initialize
+    // --- 7️⃣ Handle submenu selection (show input) ---
+    function handleSubmenu(sub) {
+      renderUserMessage(sub.title);
+      renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
+      inputContainer.style.display = "flex";
+      inputField.value = "";
+      inputField.focus();
+
+      sendButton.onclick = () => {
+        const userInput = inputField.value.trim();
+        if (!userInput) return;
+        renderUserMessage(userInput);
+        sendMessage(sub.type, userInput);
+        inputField.value = "";
+      };
+
+      inputField.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendButton.click();
+        }
+      });
+    }
+
+    // --- 8️⃣ Send Message Based on Type ---
+    async function sendMessage(type, userMessage) {
+      const endpoint = type === "static" ? "/chat/ask" : "/chat";
+      const url = `${config.backend}${endpoint}`;
+
+      renderBotMessage("⏳ Processing your request...");
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body:
+            type === "static"
+              ? JSON.stringify({ question: userMessage })
+              : JSON.stringify({
+                  message: userMessage,
+                  question: userMessage,
+                }),
+        });
+
+        const data = await res.text();
+        renderBotMessage(data || "No response received.");
+      } catch (err) {
+        console.error(err);
+        renderBotMessage("⚠️ Something went wrong. Please try again.");
+      }
+
+      showBackToMainMenu();
+      inputContainer.style.display = "none";
+    }
+
+    // --- Initialize ---
     showGreeting();
   }
 
-  // --- 8️⃣ DOM Ready
+  // --- 9️⃣ DOM Ready
   if (document.readyState === "loading") {
     window.addEventListener("DOMContentLoaded", initChatWidget);
   } else {
