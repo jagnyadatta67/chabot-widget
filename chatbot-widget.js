@@ -300,26 +300,42 @@
           } else {
             renderBotMessage("<b>🧾 Customer Details:</b>");
             chatBody.innerHTML += `
-              <div class="bubble bot-bubble">
+              <div class="bubble bot-bubble" style="background:#F9FAFB;">
                 <b>Name:</b> ${payload.customerName || "N/A"}<br/>
                 <b>Mobile:</b> ${payload.mobileNo || "N/A"}
               </div>
             `;
+        
             if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length) {
               renderBotMessage("<b>📦 Order Summary:</b>");
               payload.orderDetailsList.forEach((o) => {
                 chatBody.innerHTML += `
-                  <div class="bubble bot-bubble">
-                    <b>Order No:</b> ${o.orderNo}<br/>
-                    <b>Status:</b> ${o.orderStatus}<br/>
-                    <b>Date:</b> ${o.orderDate}<br/>
-                    <b>Total:</b> ₹${o.orderAmount.toFixed(2)}<br/>
-                    <b>Products:</b> ${o.totalProducts}
-                  </div>`;
+                  <div class="bubble bot-bubble" style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:10px;margin:8px 0;box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <img src="${o.productURL || o.imageURL || ''}" alt="${o.productName}" style="width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid #E5E7EB;">
+                      <div style="flex:1;">
+                        <div style="font-weight:600;color:#111827;font-size:14px;">${o.productName || 'N/A'}</div>
+                        <div style="color:#6B7280;font-size:13px;margin-top:2px;">${o.color ? `Color: ${o.color}` : ''} ${o.size ? `| Size: ${o.size}` : ''}</div>
+                        <div style="color:#6B7280;font-size:13px;">Qty: ${o.qty || 1}</div>
+                        <div style="font-weight:500;color:#111827;margin-top:4px;">₹${o.netAmount || o.orderAmount}</div>
+                      </div>
+                    </div>
+                    <hr style="border:none;border-top:1px dashed #E5E7EB;margin:8px 0;">
+                    <div style="font-size:13px;color:#374151;">
+                      <b>Order No:</b> ${o.orderNo}<br/>
+                      <b>Status:</b> ${o.orderStatus}<br/>
+                      <b>Date:</b> ${o.orderDate}<br/>
+                      <b>Total Products:</b> ${o.totalProducts}
+                    </div>
+                  </div>
+                `;
               });
+            } else {
+              renderBotMessage("No order details found for this customer.");
             }
           }
-        } else {
+        }
+         else {
           renderBotMessage("Sorry, I didn’t quite understand that.");
         }
 
