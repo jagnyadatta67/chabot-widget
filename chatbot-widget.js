@@ -8,15 +8,28 @@
       scriptTag?.getAttribute("data-backend") ||
       window.CHATBOT_CONFIG?.backend ||
       "http://localhost:8080/api",
+
     userid:
       scriptTag?.getAttribute("data-userid") ||
       window.CHATBOT_CONFIG?.userid ||
       "UNKNOWN_USER",
+
+    concept:
+      scriptTag?.getAttribute("data-concept") ||
+      window.CHATBOT_CONFIG?.concept ||
+      "LIFESTYLE", // default
+
+    env:
+      scriptTag?.getAttribute("data-env") ||
+      window.CHATBOT_CONFIG?.env ||
+      "uat5", // default
   };
 
+  console.log("💎 Chatbot Config:", config);
+
   function initChatWidget() {
-    let lastBotResponse = ""; // 🧠 Store last bot reply
-    let lastIntent = ""; // 🧠 Store last backend intent
+    let lastBotResponse = "";
+    let lastIntent = "";
 
     // --- Floating Button ---
     const button = document.createElement("div");
@@ -168,95 +181,29 @@
       };
     };
 
-    // --- Menus ---
+    // --- API Calls ---
     async function fetchMenus() {
-      const res = await fetch(`${config.backend}/menus`);
+      const res = await fetch(`${config.backend}/menus`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          concept: config.concept,
+          env: config.env
+        }),
+      });
       return await res.json();
     }
 
     async function fetchSubMenus(menuId) {
-      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
+      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          concept: config.concept,
+          env: config.env
+        }),
+      });
       return await res.json();
-    }
-
-    // --- Greeting ---
-    async function showGreeting() {
-      clearBody();
-      renderBotMessage("👋 Hi! Welcome to <b>LMG Chat Service</b>");
-      renderBotMessage("Please choose one of the following options:");
-      const menus = await fetchMenus();
-      menus.forEach((menu) => {
-        const btn = document.createElement("button");
-        btn.textContent = menu.title;
-        Object.assign(btn.style, {
-          margin: "6px 0",
-          padding: "10px 12px",
-          border: "1px solid #9333EA",
-          borderRadius: "10px",
-          background: "white",
-          color: "#4F46E5",
-          cursor: "pointer",
-          width: "100%",
-          textAlign: "left",
-          fontSize: "14px",
-          transition: "0.2s",
-        });
-        btn.onmouseenter = () => (btn.style.background = "#EEF2FF");
-        btn.onmouseleave = () => (btn.style.background = "white");
-        btn.onclick = () => showSubMenus(menu);
-        chatBody.appendChild(btn);
-      });
-      inputContainer.style.display = "none";
-      showBackToMainMenu();
-    }
-
-    async function showSubMenus(menu) {
-      renderUserMessage(menu.title);
-      clearBody();
-      renderBotMessage(`Here are the options under <b>${menu.title}</b>:`);
-
-      const submenus = await fetchSubMenus(menu.id);
-      if (!submenus.length) {
-        renderBotMessage("No sub-options found.");
-        showBackToMainMenu();
-        return;
-      }
-
-      submenus.forEach((sub) => {
-        const btn = document.createElement("button");
-        btn.textContent = sub.title;
-        Object.assign(btn.style, {
-          margin: "6px 0",
-          padding: "10px 12px",
-          border: "1px solid #ddd",
-          borderRadius: "10px",
-          background: sub.type === "dynamic" ? "#EEF2FF" : "#F9FAFB",
-          color: "#111827",
-          cursor: "pointer",
-          width: "100%",
-          textAlign: "left",
-          fontSize: "14px",
-        });
-        btn.onclick = () => handleSubmenu(sub);
-        chatBody.appendChild(btn);
-      });
-      showBackToMainMenu();
-    }
-
-    function handleSubmenu(sub) {
-      renderUserMessage(sub.title);
-      renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
-      inputContainer.style.display = "flex";
-      inputField.value = "";
-      inputField.focus();
-
-      sendButton.onclick = () => {
-        const userInput = inputField.value.trim();
-        if (!userInput) return;
-        renderUserMessage(userInput);
-        sendMessage(sub.type, userInput);
-        inputField.value = "";
-      };
     }
 
     async function sendMessage(type, userMessage) {
@@ -267,11 +214,17 @@
       try {
         const bodyPayload =
           type === "static"
-            ? { question: userMessage }
+            ? {
+                question: userMessage,
+                concept: config.concept,
+                env: config.env,
+              }
             : {
                 message: userMessage,
                 question: userMessage,
                 userId: config.userid,
+                concept: config.concept,
+                env: config.env,
                 ...(lastIntent === "ORDER_TRACKING" && {
                   previousResponse: lastBotResponse,
                 }),
@@ -288,8 +241,7 @@
         clearBody();
 
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
-        lastIntent = intent; // store for next turn
-
+        lastIntent = intent;
         const payload = json.data || json;
 
         if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
@@ -334,8 +286,7 @@
               renderBotMessage("No order details found for this customer.");
             }
           }
-        }
-         else {
+        } else {
           renderBotMessage("Sorry, I didn’t quite understand that.");
         }
 
@@ -347,7 +298,85 @@
       }
     }
 
-    // Init
+    // --- Greeting / Menu flow ---
+    async function showGreeting() {
+      clearBody();
+      renderBotMessage("👋 Hi! Welcome to <b>LMG Chat Service</b>");
+      renderBotMessage("Please choose one of the following options:");
+      const menus = await fetchMenus();
+      menus.forEach((menu) => {
+        const btn = document.createElement("button");
+        btn.textContent = menu.title;
+        Object.assign(btn.style, {
+          margin: "6px 0",
+          padding: "10px 12px",
+          border: "1px solid #9333EA",
+          borderRadius: "10px",
+          background: "white",
+          color: "#4F46E5",
+          cursor: "pointer",
+          width: "100%",
+          textAlign: "left",
+          fontSize: "14px",
+          transition: "0.2s",
+        });
+        btn.onmouseenter = () => (btn.style.background = "#EEF2FF");
+        btn.onmouseleave = () => (btn.style.background = "white");
+        btn.onclick = () => showSubMenus(menu);
+        chatBody.appendChild(btn);
+      });
+      inputContainer.style.display = "none";
+      showBackToMainMenu();
+    }
+
+    async function showSubMenus(menu) {
+      renderUserMessage(menu.title);
+      clearBody();
+      renderBotMessage(`Here are the options under <b>${menu.title}</b>:`);
+      const submenus = await fetchSubMenus(menu.id);
+      if (!submenus.length) {
+        renderBotMessage("No sub-options found.");
+        showBackToMainMenu();
+        return;
+      }
+      submenus.forEach((sub) => {
+        const btn = document.createElement("button");
+        btn.textContent = sub.title;
+        Object.assign(btn.style, {
+          margin: "6px 0",
+          padding: "10px 12px",
+          border: "1px solid #ddd",
+          borderRadius: "10px",
+          background: sub.type === "dynamic" ? "#EEF2FF" : "#F9FAFB",
+          color: "#111827",
+          cursor: "pointer",
+          width: "100%",
+          textAlign: "left",
+          fontSize: "14px",
+        });
+        btn.onclick = () => handleSubmenu(sub);
+        chatBody.appendChild(btn);
+      });
+      showBackToMainMenu();
+    }
+
+    function handleSubmenu(sub) {
+      renderUserMessage(sub.title);
+      renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
+      inputContainer.style.display = "flex";
+      inputField.value = "";
+      inputField.focus();
+
+      sendButton.onclick = () => {
+        const userInput = inputField.value.trim();
+        if (!userInput) return;
+        renderUserMessage(userInput);
+        sendMessage(sub.type, userInput);
+        inputField.value = "";
+      };
+    }
+
+    // --- Initialize Chatbot ---
     button.onclick = () => {
       chatWindow.style.display =
         chatWindow.style.display === "flex" ? "none" : "flex";
