@@ -189,18 +189,27 @@
 
     // --- API Calls ---
     async function fetchMenus() {
-      const res = await fetch(`${config.backend}/menus`);
-      return await res.json();
+      const url = `${config.backend}/menus`;
+      console.log("📡 Fetching menus from:", url);
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("✅ Menus Response:", data);
+      return data;
     }
 
     async function fetchSubMenus(menuId) {
-      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
-      return await res.json();
+      const url = `${config.backend}/menus/${menuId}/submenus`;
+      console.log("📡 Fetching submenus from:", url);
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("✅ Submenus Response:", data);
+      return data;
     }
 
     async function sendMessage(type, userMessage) {
       const endpoint = type === "static" ? "/chat/ask" : "/chat";
       const url = `${config.backend}${endpoint}`;
+      console.log("💬 Sending chat to:", url);
 
       try {
         const bodyPayload =
@@ -215,6 +224,7 @@
                 ...(lastIntent === "ORDER_TRACKING" && { previousResponse: lastBotResponse }),
               };
 
+        console.log("📦 Chat Payload:", bodyPayload);
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -222,6 +232,7 @@
         });
 
         const json = await res.json();
+        console.log("✅ Chat Response:", json);
         clearBody();
 
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
@@ -263,8 +274,8 @@
           } else renderBotMessage("No order details found.");
         } else renderBotMessage("Sorry, I didn’t quite understand that.");
       } catch (err) {
+        console.error("❌ Chat API Error:", err);
         renderBotMessage("⚠️ Something went wrong.");
-        console.error(err);
       }
     }
 
@@ -273,6 +284,7 @@
       clearBody();
       renderBotMessage(`👋 Hi! Welcome to <b>${config.concept} Chat Service</b>`);
       renderBotMessage("Please choose one of the following options:");
+
       const menus = await fetchMenus();
       menus.forEach((menu) => {
         const btn = document.createElement("button");
@@ -292,10 +304,48 @@
         });
         btn.onmouseenter = () => (btn.style.background = "#F3F4F6");
         btn.onmouseleave = () => (btn.style.background = "white");
-        btn.onclick = () => handleSubmenu(menu);
+        btn.onclick = () => showSubMenus(menu);
         chatBody.appendChild(btn);
       });
       inputContainer.style.display = "none";
+    }
+
+    async function showSubMenus(menu) {
+      clearBody();
+      renderUserMessage(menu.title);
+      renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
+      try {
+        const submenus = await fetchSubMenus(menu.id);
+        if (!submenus || !submenus.length) {
+          renderBotMessage("No sub-options found for this menu.");
+          return;
+        }
+        renderBotMessage(`Here are the options under <b>${menu.title}</b>:`);
+
+        submenus.forEach((sub) => {
+          const subBtn = document.createElement("button");
+          subBtn.textContent = sub.title;
+          Object.assign(subBtn.style, {
+            margin: "6px 0",
+            padding: "10px 12px",
+            border: `1px solid ${theme.primary}`,
+            borderRadius: "10px",
+            background: sub.type === "dynamic" ? "#EEF2FF" : "white",
+            color: theme.primary,
+            cursor: "pointer",
+            width: "100%",
+            textAlign: "left",
+            fontSize: "14px",
+          });
+          subBtn.onmouseenter = () => (subBtn.style.background = "#F3F4F6");
+          subBtn.onmouseleave = () => (subBtn.style.background = "white");
+          subBtn.onclick = () => handleSubmenu(sub);
+          chatBody.appendChild(subBtn);
+        });
+      } catch (err) {
+        console.error("❌ Error fetching submenus:", err);
+        renderBotMessage("⚠️ Unable to load submenu options. Please try again.");
+      }
     }
 
     function handleSubmenu(sub) {
@@ -314,6 +364,7 @@
       };
     }
 
+    // --- Toggle Chat ---
     button.onclick = () => {
       chatWindow.style.display =
         chatWindow.style.display === "flex" ? "none" : "flex";
