@@ -61,26 +61,27 @@
     // --- Floating Button ---
     const button = document.createElement("div");
     button.id = "chatbot-button";
-    button.innerHTML = `<img src="${theme.logo}" alt="${config.concept} logo" style="width:30px;height:auto;margin-right:6px;">💬`;
+    button.innerHTML = `
+      <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+          <img src="${theme.logo}" alt="${config.concept} logo" style="width:28px;height:auto;object-fit:contain;">
+        </div>
+        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">💬</div>
+      </div>
+    `;
     Object.assign(button.style, {
       position: "fixed",
       bottom: "25px",
       right: "25px",
-      width: "65px",
-      height: "65px",
-      background: theme.gradient,
-      color: "#fff",
+      width: "70px",
+      height: "70px",
       borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: "26px",
       cursor: "pointer",
-      boxShadow: "0 6px 14px rgba(0,0,0,0.3)",
       zIndex: "9999",
       transition: "transform 0.2s ease-in-out",
+      background: "transparent",
     });
-    button.onmouseenter = () => (button.style.transform = "scale(1.1)");
+    button.onmouseenter = () => (button.style.transform = "scale(1.08)");
     button.onmouseleave = () => (button.style.transform = "scale(1)");
     document.body.appendChild(button);
 
@@ -142,7 +143,7 @@
       </style>
 
       <div style="background:${theme.gradient};color:#fff;padding:12px 16px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between;">
-        <span>💬 ${config.concept} Chat Service</span>
+        <span><img src="${theme.logo}" alt="${config.concept} logo" style="height:20px;margin-right:6px;vertical-align:middle;"> Chat Service</span>
         <span style="font-size:18px;cursor:pointer;" id="close-chat">✖</span>
       </div>
 
@@ -167,21 +168,6 @@
 
     closeBtn.onclick = () => (chatWindow.style.display = "none");
 
-    // --- Typing Indicator ---
-    function showTyping() {
-      const typing = document.createElement("div");
-      typing.id = "bot-typing";
-      typing.innerHTML = "<i>Bot is typing...</i>";
-      typing.style.color = "#6b7280";
-      typing.style.margin = "8px 0";
-      chatBody.appendChild(typing);
-      chatBody.scrollTop = chatBody.scrollHeight;
-    }
-    function hideTyping() {
-      const t = document.getElementById("bot-typing");
-      if (t) t.remove();
-    }
-
     // --- Helpers ---
     const clearBody = () => (chatBody.innerHTML = "");
     const renderBotMessage = (msg) => {
@@ -203,27 +189,18 @@
 
     // --- API Calls ---
     async function fetchMenus() {
-      const res = await fetch(`${config.backend}/menus`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ concept: config.concept, env: config.env }),
-      });
+      const res = await fetch(`${config.backend}/menus`);
       return await res.json();
     }
 
     async function fetchSubMenus(menuId) {
-      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ concept: config.concept, env: config.env }),
-      });
+      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
       return await res.json();
     }
 
     async function sendMessage(type, userMessage) {
       const endpoint = type === "static" ? "/chat/ask" : "/chat";
       const url = `${config.backend}${endpoint}`;
-      showTyping();
 
       try {
         const bodyPayload =
@@ -245,7 +222,6 @@
         });
 
         const json = await res.json();
-        hideTyping();
         clearBody();
 
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
@@ -260,20 +236,19 @@
             <div class="bubble bot-bubble" style="background:#F9FAFB;">
               <b>Name:</b> ${payload.customerName || "N/A"}<br/>
               <b>Mobile:</b> ${payload.mobileNo || "N/A"}
-            </div>
-          `;
+            </div>`;
           if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length) {
             renderBotMessage("<b>📦 Order Summary:</b>");
             payload.orderDetailsList.forEach((o) => {
               chatBody.innerHTML += `
-                <div class="bubble bot-bubble" style="background:#FFFFFF;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+                <div class="bubble bot-bubble" style="background:#FFFFFF;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
                   <div style="display:flex;align-items:center;gap:10px;">
                     <img src="${o.productURL || o.imageURL || ''}" alt="${o.productName}" style="width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid #E5E7EB;">
                     <div style="flex:1;">
                       <div style="font-weight:600;color:#111827;font-size:14px;">${o.productName || 'N/A'}</div>
-                      <div style="color:#6B7280;font-size:13px;margin-top:2px;">${o.color ? `Color: ${o.color}` : ''} ${o.size ? `| Size: ${o.size}` : ''}</div>
+                      <div style="color:#6B7280;font-size:13px;">${o.color ? `Color: ${o.color}` : ''} ${o.size ? `| Size: ${o.size}` : ''}</div>
                       <div style="color:#6B7280;font-size:13px;">Qty: ${o.qty || 1}</div>
-                      <div style="font-weight:500;color:#111827;margin-top:4px;">₹${o.netAmount || o.orderAmount}</div>
+                      <div style="font-weight:500;color:#111827;">₹${o.netAmount || o.orderAmount}</div>
                     </div>
                   </div>
                   <hr style="border:none;border-top:1px dashed #E5E7EB;margin:8px 0;">
@@ -285,19 +260,15 @@
                   </div>
                 </div>`;
             });
-          } else {
-            renderBotMessage("No order details found for this customer.");
-          }
-        } else {
-          renderBotMessage("Sorry, I didn’t quite understand that.");
-        }
+          } else renderBotMessage("No order details found.");
+        } else renderBotMessage("Sorry, I didn’t quite understand that.");
       } catch (err) {
-        hideTyping();
         renderBotMessage("⚠️ Something went wrong.");
         console.error(err);
       }
     }
 
+    // --- Greeting & Flow ---
     async function showGreeting() {
       clearBody();
       renderBotMessage(`👋 Hi! Welcome to <b>${config.concept} Chat Service</b>`);
