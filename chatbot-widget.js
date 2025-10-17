@@ -64,7 +64,7 @@
     button.innerHTML = `
       <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-          <img src="${theme.logo}" alt="${config.concept} logo" style="width:28px;height:auto;object-fit:contain;">
+          <img src="${theme.logo}" alt="${config.concept} logo" style="width:58px;height:auto;object-fit:contain;">
         </div>
         <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">💬</div>
       </div>
