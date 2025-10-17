@@ -9,17 +9,14 @@
       scriptTag?.getAttribute("data-backend") ||
       window.CHATBOT_CONFIG?.backend ||
       "http://localhost:8080/api",
-
     userid:
       scriptTag?.getAttribute("data-userid") ||
       window.CHATBOT_CONFIG?.userid ||
       "UNKNOWN_USER",
-
     concept:
       (scriptTag?.getAttribute("data-concept") ||
         window.CHATBOT_CONFIG?.concept ||
         "LIFESTYLE").toUpperCase(),
-
     env:
       scriptTag?.getAttribute("data-env") ||
       window.CHATBOT_CONFIG?.env ||
@@ -58,17 +55,16 @@
     let lastBotResponse = "";
     let lastIntent = "";
 
-    // --- Floating Button ---
+    // --- Floating Chat Button ---
     const button = document.createElement("div");
     button.id = "chatbot-button";
     button.innerHTML = `
       <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-          <img src="${theme.logo}" alt="${config.concept} logo" style="width:58px;height:auto;object-fit:contain;">
+          <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
         </div>
-        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">💬</div>
-      </div>
-    `;
+        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
+      </div>`;
     Object.assign(button.style, {
       position: "fixed",
       bottom: "25px",
@@ -79,9 +75,8 @@
       cursor: "pointer",
       zIndex: "9999",
       transition: "transform 0.2s ease-in-out",
-      background: "transparent",
     });
-    button.onmouseenter = () => (button.style.transform = "scale(1.08)");
+    button.onmouseenter = () => (button.style.transform = "scale(1.1)");
     button.onmouseleave = () => (button.style.transform = "scale(1)");
     document.body.appendChild(button);
 
@@ -94,68 +89,32 @@
       right: 25px;
       width: 360px;
       height: 540px;
-      background: rgba(255,255,255,0.98);
-      backdrop-filter: blur(10px);
+      background: white;
       border-radius: 16px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.25);
       display: none;
       flex-direction: column;
       overflow: hidden;
       font-family: 'Inter', Arial, sans-serif;
-      z-index: 9999;
-      transition: all 0.3s ease-in-out;
       border: 2px solid ${theme.primary};
+      z-index: 9999;
     `;
 
     chatWindow.innerHTML = `
-      <style>
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .bubble {
-          animation: fadeIn 0.25s ease;
-          background: #f3f4f6;
-          border-radius: 12px;
-          padding: 8px 12px;
-          margin: 6px 0;
-          display: inline-block;
-          max-width: 88%;
-          line-height: 1.5;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .user-bubble {
-          background: ${theme.gradient};
-          color: white;
-          align-self: flex-end;
-        }
-        .bot-bubble {
-          background: #f9fafb;
-          color: #111;
-        }
-        #chat-body::-webkit-scrollbar {
-          width: 6px;
-        }
-        #chat-body::-webkit-scrollbar-thumb {
-          background: #d1d5db;
-          border-radius: 4px;
-        }
-      </style>
-
-      <div style="background:${theme.gradient};color:#fff;padding:12px 16px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between;">
-        <span><img src="${theme.logo}" alt="${config.concept} logo" style="height:20px;margin-right:6px;vertical-align:middle;"> Chat Service</span>
-        <span style="font-size:18px;cursor:pointer;" id="close-chat">✖</span>
+      <div style="background:${theme.gradient};color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:600;">
+        <span><img src="${theme.logo}" style="height:20px;margin-right:6px;"> Chat Service</span>
+        <span id="close-chat" style="cursor:pointer;">✖</span>
       </div>
 
       <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;font-size:14px;"></div>
 
-      <div id="chat-input-container" style="display:none;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0;display:flex;">
-        <input id="chat-input" style="flex:1;padding:10px;border:none;font-size:14px;border-radius:0 0 0 12px;outline:none;" placeholder="Type your message..." />
-        <button id="chat-send" style="background:${theme.gradient};color:#fff;border:none;padding:10px 16px;border-radius:0 0 12px 0;cursor:pointer;">Send</button>
+      <div id="chat-input-container" style="display:none;border-top:1px solid #e5e7eb;display:flex;">
+        <input id="chat-input" placeholder="Type your message..." style="flex:1;padding:10px;border:none;outline:none;">
+        <button id="chat-send" style="background:${theme.gradient};color:white;border:none;padding:10px 16px;cursor:pointer;">Send</button>
       </div>
 
-      <div style="text-align:center;padding:8px;background:#f9fafb;font-size:12px;border-top:1px solid #eee;">
-        Powered by <img src="${theme.logo}" alt="${config.concept} logo" style="height:20px;margin-left:4px;vertical-align:middle;">
+      <div style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
+        Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
       </div>
     `;
     document.body.appendChild(chatWindow);
@@ -168,193 +127,148 @@
 
     closeBtn.onclick = () => (chatWindow.style.display = "none");
 
-    // --- Helpers ---
+    // --- Utility functions ---
     const clearBody = () => (chatBody.innerHTML = "");
     const renderBotMessage = (msg) => {
-      msg = msg.replace(/### (.*$)/gim, "<b>$1</b>").replace(/\*\*(.*?)\*\*/gim, "<b>$1</b>").replace(/\n/g, "<br/>");
       const bubble = document.createElement("div");
       bubble.className = "bubble bot-bubble";
-      bubble.innerHTML = `<b>Bot:</b> ${msg}`;
+      bubble.style = `background:#f3f4f6;border-radius:12px;padding:8px 12px;margin:6px 0;max-width:88%;`;
+      bubble.innerHTML = msg.replace(/\n/g, "<br/>");
       chatBody.appendChild(bubble);
       chatBody.scrollTop = chatBody.scrollHeight;
-      lastBotResponse = msg;
     };
     const renderUserMessage = (msg) => {
       const bubble = document.createElement("div");
       bubble.className = "bubble user-bubble";
-      bubble.innerHTML = `<b>You:</b> ${msg}`;
+      bubble.style = `background:${theme.gradient};color:white;border-radius:12px;padding:8px 12px;margin:6px 0;align-self:flex-end;max-width:88%;`;
+      bubble.innerHTML = msg;
       chatBody.appendChild(bubble);
       chatBody.scrollTop = chatBody.scrollHeight;
     };
 
-    // --- API Calls ---
+    // --- Fetch menu/submenu ---
     async function fetchMenus() {
-      const url = `${config.backend}/menus`;
-      console.log("📡 Fetching menus from:", url);
-      const res = await fetch(url);
-      const data = await res.json();
-      console.log("✅ Menus Response:", data);
-      return data;
+      const res = await fetch(`${config.backend}/menus`);
+      return await res.json();
     }
-
     async function fetchSubMenus(menuId) {
-      const url = `${config.backend}/menus/${menuId}/submenus`;
-      console.log("📡 Fetching submenus from:", url);
-      const res = await fetch(url);
-      const data = await res.json();
-      console.log("✅ Submenus Response:", data);
-      return data;
+      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
+      return await res.json();
     }
 
+    // --- Send Chat message ---
     async function sendMessage(type, userMessage) {
-      const endpoint = type === "static" ? "/chat/ask" : "/chat";
-      const url = `${config.backend}${endpoint}`;
-      console.log("💬 Sending chat to:", url);
-
+      const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
       try {
-        const bodyPayload =
-          type === "static"
-            ? { question: userMessage, concept: config.concept, env: config.env }
-            : {
-                message: userMessage,
-                question: userMessage,
-                userId: config.userid,
-                concept: config.concept,
-                env: config.env,
-                ...(lastIntent === "ORDER_TRACKING" && { previousResponse: lastBotResponse }),
-              };
-
-        console.log("📦 Chat Payload:", bodyPayload);
+        const body = {
+          message: userMessage,
+          question: userMessage,
+          userId: config.userid,
+          concept: config.concept,
+          env: config.env,
+        };
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bodyPayload),
+          body: JSON.stringify(body),
         });
-
         const json = await res.json();
-        console.log("✅ Chat Response:", json);
-        clearBody();
 
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
         lastIntent = intent;
         const payload = json.data || json;
 
         if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
-          renderBotMessage(payload.chat_message || payload.data || payload || "No info found.");
+          renderBotMessage(payload.chat_message || "No information found.");
         } else if (intent === "ORDER_TRACKING") {
           renderBotMessage("<b>🧾 Customer Details:</b>");
           chatBody.innerHTML += `
-            <div class="bubble bot-bubble" style="background:#F9FAFB;">
+            <div class="bubble bot-bubble">
               <b>Name:</b> ${payload.customerName || "N/A"}<br/>
               <b>Mobile:</b> ${payload.mobileNo || "N/A"}
             </div>`;
-          if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length) {
-            renderBotMessage("<b>📦 Order Summary:</b>");
+          if (Array.isArray(payload.orderDetailsList)) {
             payload.orderDetailsList.forEach((o) => {
               chatBody.innerHTML += `
-                <div class="bubble bot-bubble" style="background:#FFFFFF;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <img src="${o.productURL || o.imageURL || ''}" alt="${o.productName}" style="width:70px;height:70px;border-radius:8px;object-fit:cover;border:1px solid #E5E7EB;">
-                    <div style="flex:1;">
-                      <div style="font-weight:600;color:#111827;font-size:14px;">${o.productName || 'N/A'}</div>
-                      <div style="color:#6B7280;font-size:13px;">${o.color ? `Color: ${o.color}` : ''} ${o.size ? `| Size: ${o.size}` : ''}</div>
-                      <div style="color:#6B7280;font-size:13px;">Qty: ${o.qty || 1}</div>
-                      <div style="font-weight:500;color:#111827;">₹${o.netAmount || o.orderAmount}</div>
-                    </div>
-                  </div>
-                  <hr style="border:none;border-top:1px dashed #E5E7EB;margin:8px 0;">
-                  <div style="font-size:13px;color:#374151;">
-                    <b>Order No:</b> ${o.orderNo}<br/>
-                    <b>Status:</b> ${o.orderStatus}<br/>
-                    <b>Date:</b> ${o.orderDate}<br/>
-                    <b>Total Products:</b> ${o.totalProducts}
-                  </div>
+                <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;">
+                  <b>${o.productName}</b><br/>
+                  ${o.color || ""} ${o.size || ""}<br/>
+                  Qty: ${o.qty || 1} | ₹${o.netAmount}<br/>
+                  <small>Status: ${o.orderStatus}</small>
                 </div>`;
             });
-          } else renderBotMessage("No order details found.");
-        } else renderBotMessage("Sorry, I didn’t quite understand that.");
-      } catch (err) {
-        console.error("❌ Chat API Error:", err);
-        renderBotMessage("⚠️ Something went wrong.");
+          }
+        }
+      } catch (e) {
+        renderBotMessage("⚠️ Something went wrong. Please try again.");
       }
     }
 
-    // --- Greeting & Flow ---
-    async function showGreeting() {
-      clearBody();
-      renderBotMessage(`👋 Hi! Welcome to <b>${config.concept} Chat Service</b>`);
-      renderBotMessage("Please choose one of the following options:");
+    // --- Handle submenu click ---
+    async function handleSubmenu(sub) {
+      renderUserMessage(sub.title);
 
-      const menus = await fetchMenus();
-      menus.forEach((menu) => {
-        const btn = document.createElement("button");
-        btn.textContent = menu.title;
-        Object.assign(btn.style, {
-          margin: "6px 0",
-          padding: "10px 12px",
-          border: `1px solid ${theme.primary}`,
-          borderRadius: "10px",
-          background: "white",
-          color: theme.primary,
-          cursor: "pointer",
-          width: "100%",
-          textAlign: "left",
-          fontSize: "14px",
-          transition: "0.2s",
-        });
-        btn.onmouseenter = () => (btn.style.background = "#F3F4F6");
-        btn.onmouseleave = () => (btn.style.background = "white");
-        btn.onclick = () => showSubMenus(menu);
-        chatBody.appendChild(btn);
-      });
-      inputContainer.style.display = "none";
-    }
+      // ✅ Handle “Near By Store”
+      if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
+        renderBotMessage("📍 Detecting your location...");
 
-    async function showSubMenus(menu) {
-      clearBody();
-      renderUserMessage(menu.title);
-      renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
-      try {
-        const submenus = await fetchSubMenus(menu.id);
-        if (!submenus || !submenus.length) {
-          renderBotMessage("No sub-options found for this menu.");
+        if (!navigator.geolocation) {
+          renderBotMessage("⚠️ Geolocation is not supported by your browser.");
           return;
         }
-        renderBotMessage(`Here are the options under <b>${menu.title}</b>:`);
 
-        submenus.forEach((sub) => {
-          const subBtn = document.createElement("button");
-          subBtn.textContent = sub.title;
-          Object.assign(subBtn.style, {
-            margin: "6px 0",
-            padding: "10px 12px",
-            border: `1px solid ${theme.primary}`,
-            borderRadius: "10px",
-            background: sub.type === "dynamic" ? "#EEF2FF" : "white",
-            color: theme.primary,
-            cursor: "pointer",
-            width: "100%",
-            textAlign: "left",
-            fontSize: "14px",
-          });
-          subBtn.onmouseenter = () => (subBtn.style.background = "#F3F4F6");
-          subBtn.onmouseleave = () => (subBtn.style.background = "white");
-          subBtn.onclick = () => handleSubmenu(sub);
-          chatBody.appendChild(subBtn);
-        });
-      } catch (err) {
-        console.error("❌ Error fetching submenus:", err);
-        renderBotMessage("⚠️ Unable to load submenu options. Please try again.");
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            renderBotMessage(`✅ Location found (Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)})`);
+            renderBotMessage("Fetching nearby stores... 🏬");
+
+            try {
+              const res = await fetch(`${config.backend}/chat/nearby-stores`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  latitude: lat,
+                  longitude: lon,
+                  concept: config.concept,
+                  env: config.env,
+                  userId: config.userid,
+                }),
+              });
+              const json = await res.json();
+
+              if (json?.data?.stores?.length) {
+                renderBotMessage(`🗺️ Found ${json.data.stores.length} nearby store(s):`);
+                json.data.stores.forEach((s) => {
+                  chatBody.innerHTML += `
+                    <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
+                      <b>${s.storeName}</b><br/>
+                      ${s.address}<br/>
+                      📞 ${s.contactNumber}<br/>
+                      🕒 ${s.workingHours}<br/>
+                      <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
+                         style="color:${theme.primary};font-weight:600;">📍 View on Map</a>
+                    </div>`;
+                });
+              } else {
+                renderBotMessage("😔 No nearby stores found.");
+              }
+            } catch (e) {
+              renderBotMessage("⚠️ Unable to fetch nearby stores. Please try again later.");
+            }
+          },
+          (err) => {
+            renderBotMessage("❌ Location permission denied. Please allow access to find nearby stores.");
+          }
+        );
+        inputContainer.style.display = "none";
+        return;
       }
-    }
 
-    function handleSubmenu(sub) {
-      renderUserMessage(sub.title);
+      // Default flow
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
       inputContainer.style.display = "flex";
-      inputField.value = "";
-      inputField.focus();
-
       sendButton.onclick = () => {
         const userInput = inputField.value.trim();
         if (!userInput) return;
@@ -362,6 +276,57 @@
         sendMessage(sub.type, userInput);
         inputField.value = "";
       };
+    }
+
+    // --- Show Menus / Submenus ---
+    async function showGreeting() {
+      clearBody();
+      renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`);
+      renderBotMessage("Please choose an option below 👇");
+      const menus = await fetchMenus();
+      menus.forEach((menu) => {
+        const btn = document.createElement("button");
+        btn.textContent = menu.title;
+        Object.assign(btn.style, {
+          width: "100%",
+          margin: "6px 0",
+          padding: "10px",
+          border: `1px solid ${theme.primary}`,
+          borderRadius: "10px",
+          background: "#fff",
+          color: theme.primary,
+          cursor: "pointer",
+        });
+        btn.onclick = () => showSubMenus(menu);
+        chatBody.appendChild(btn);
+      });
+    }
+
+    async function showSubMenus(menu) {
+      clearBody();
+      renderUserMessage(menu.title);
+      renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
+      const submenus = await fetchSubMenus(menu.id);
+      if (!submenus?.length) {
+        renderBotMessage("No sub-options found.");
+        return;
+      }
+      submenus.forEach((sub) => {
+        const subBtn = document.createElement("button");
+        subBtn.textContent = sub.title;
+        Object.assign(subBtn.style, {
+          width: "100%",
+          margin: "6px 0",
+          padding: "10px",
+          border: `1px solid ${theme.primary}`,
+          borderRadius: "10px",
+          background: sub.type === "dynamic" ? "#EEF2FF" : "#fff",
+          color: theme.primary,
+          cursor: "pointer",
+        });
+        subBtn.onclick = () => handleSubmenu(sub);
+        chatBody.appendChild(subBtn);
+      });
     }
 
     // --- Toggle Chat ---
