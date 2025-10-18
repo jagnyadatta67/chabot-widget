@@ -244,7 +244,7 @@
                   chatBody.innerHTML += `
                     <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
                       <b>${s.storeName}</b><br/>
-                      ${s.address.line1}-  ${s.address.line1}-   ${s.address.postalCode}<br/>
+                      ${s.line1}-  ${s.line2}-   ${s.address.postalCode}<br/>
                       📞 ${s.contactNumber}<br/>
                       🕒 ${s.workingHours}<br/>
                       <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
