@@ -181,24 +181,37 @@
         if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
           renderBotMessage(payload.chat_message || "No information found.");
         } else if (intent === "ORDER_TRACKING") {
-          renderBotMessage("<b>🧾 Customer Details:</b>");
-          chatBody.innerHTML += `
-            <div class="bubble bot-bubble">
-              <b>Name:</b> ${payload.customerName || "N/A"}<br/>
-              <b>Mobile:</b> ${payload.mobileNo || "N/A"}
-            </div>`;
-          if (Array.isArray(payload.orderDetailsList)) {
-            payload.orderDetailsList.forEach((o) => {
-              chatBody.innerHTML += `
-                <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;">
-                  <b>${o.productName}</b><br/>
-                  ${o.color || ""} ${o.size || ""}<br/>
-                  Qty: ${o.qty || 1} | ₹${o.netAmount}<br/>
-                  <small>Status: ${o.orderStatus}</small>
-                </div>`;
-            });
+
+          // 🧠 Case 1: If chat_message is present (backend info or error message)
+          if (payload.chat_message && payload.chat_message.trim() !== "") {
+            renderBotMessage(payload.chat_message);
+          } 
+          // 🧾 Case 2: Otherwise, show order details
+          else {
+            renderBotMessage("<b>🧾 Customer Details:</b>");
+        
+            chatBody.innerHTML += `
+              <div class="bubble bot-bubble">
+                <b>Name:</b> ${payload.customerName || "N/A"}<br/>
+                <b>Mobile:</b> ${payload.mobileNo || "N/A"}
+              </div>`;
+        
+            if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
+              payload.orderDetailsList.forEach((o) => {
+                chatBody.innerHTML += `
+                  <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;">
+                    <b>${o.productName}</b><br/>
+                    ${o.color || ""} ${o.size || ""}<br/>
+                    Qty: ${o.qty || 1} | ₹${o.netAmount}<br/>
+                    <small>Status: ${o.orderStatus}</small>
+                  </div>`;
+              });
+            } else {
+              renderBotMessage("No recent orders found.");
+            }
           }
         }
+        
       } catch (e) {
         renderBotMessage("⚠️ Something went wrong. Please try again.");
       }
