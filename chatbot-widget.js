@@ -140,9 +140,14 @@
       chatBody.appendChild(bubble);
       chatBody.scrollTop = chatBody.scrollHeight;
     };
+
     function renderBackToMenu() {
+      const existing = document.getElementById("back-to-menu-btn");
+      if (existing) existing.remove(); // remove previous duplicate button
+
       const backBtn = document.createElement("button");
-      backBtn.textContent = "⬅️ Back to Main Menu";
+      backBtn.id = "back-to-menu-btn";
+      backBtn.innerHTML = "⬅️ Back to Main Menu";
       Object.assign(backBtn.style, {
         width: "100%",
         margin: "10px 0",
@@ -158,8 +163,7 @@
       backBtn.onmouseenter = () => (backBtn.style.background = "#fafafa");
       backBtn.onmouseleave = () => (backBtn.style.background = "#fff");
       backBtn.onclick = () => showGreeting();
-      chatBody.appendChild(backBtn);
-      chatBody.scrollTop = chatBody.scrollHeight;
+      chatBody.prepend(backBtn); // always at top
     }
 
     // --- API ---
@@ -189,96 +193,36 @@
           body: JSON.stringify(body),
         });
         const json = await res.json();
-
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
-        lastIntent = intent;
         const payload = json.data || json;
 
-        if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
-          renderBotMessage(payload.chat_message || payload.data || "No information found.");
-          renderBackToMenu();
-        }
-
-        // --- ORDER TRACKING enhanced ---
-        else if (intent === "ORDER_TRACKING") {
-          if (payload.chat_message && payload.chat_message.trim() !== "") {
-            renderBotMessage(payload.chat_message);
-          } else {
-            renderBotMessage("<b>🧾 Customer Details:</b>");
-            chatBody.innerHTML += `
-              <div class="bubble bot-bubble">
-                <b>Name:</b> ${payload.customerName || "N/A"}<br/>
-                <b>Mobile:</b> ${payload.mobileNo || "N/A"}
-              </div>`;
-
-            if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
-              payload.orderDetailsList.forEach((o) => {
-                const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
-                const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
-
-                const productLink = o.productURL
-                  ? `<a href="${o.productURL}" target="_blank" style="color:${theme.primary};font-weight:600;">🔗 View Product</a>`
-                  : "";
-                const orderLink =
-                  o.orderNo && o.orderNo.startsWith("http")
-                    ? `<a href="${o.orderNo}" target="_blank" style="color:${theme.primary};font-weight:600;margin-left:10px;">📦 View Order</a>`
-                    : `<span style="font-size:13px;"><b>Order No:</b> ${o.orderNo || "N/A"}</span>`;
-
-                chatBody.innerHTML += `
-                  <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;border-radius:10px;margin-top:6px;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                      <img src="${o.imageURL || 'https://via.placeholder.com/80'}" style="width:80px;height:80px;border-radius:6px;object-fit:cover;">
-                      <div>
-                        <div style="font-weight:600;color:#222;">${o.productName || "Product"}</div>
-                        ${o.color || o.size ? `<div style="font-size:12px;color:#555;">${o.color || ""}${o.size ? " | " + o.size : ""}</div>` : ""}
-                        <div style="font-size:12px;color:#555;">Qty: ${o.qty || 1} | <b>${o.netAmount || ""}</b></div>
-                      </div>
-                    </div>
-                    <hr style="border:none;border-top:1px dashed #ddd;margin:8px 0;">
-                    <div style="font-size:13px;color:#444;">
-                      ${orderLink}<br/>
-                      ${o.orderAmount ? `<b>Order Amount:</b> ₹${o.orderAmount}<br/>` : ""}
-                      ${o.estmtDate ? `<b>Estimated Delivery:</b> ${o.estmtDate}<br/>` : ""}
-                      ${o.latestStatus ? `<b>Latest Status:</b> <span style="color:${theme.primary};">${o.latestStatus}</span><br/>` : ""}
-                    </div>
-                    <div style="font-size:13px;margin-top:6px;">${returnMsg} | ${exchangeMsg}</div>
-                    <div style="margin-top:4px;">${productLink}</div>
-                  </div>`;
-              });
-            } else renderBotMessage("No recent orders found.");
-          }
-          renderBackToMenu();
-        }
+        renderBotMessage(payload.chat_message || payload.data || "No information found.");
       } catch (e) {
         renderBotMessage("⚠️ Something went wrong. Please try again.");
-        renderBackToMenu();
       }
     }
 
     // --- Handle Submenus ---
     async function handleSubmenu(sub) {
-      renderUserMessage(sub.title);
-      clearTimeout();
-
-      // ✅ Always show back to menu immediately
+      clearBody(); // clear previous messages for clean view
       renderBackToMenu();
+      renderUserMessage(sub.title);
 
-      // ✅ Handle “Near By Store”
-      if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
+      if (
+        sub.title.toLowerCase().includes("near") &&
+        sub.title.toLowerCase().includes("store")
+      ) {
         renderBotMessage("📍 Detecting your location...");
-
         if (!navigator.geolocation) {
-          renderBotMessage("⚠️ Geolocation is not supported by your browser.");
+          renderBotMessage("⚠️ Geolocation not supported.");
           return;
         }
-
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
-            renderBotMessage(`✅ Location found (Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)})`);
-            renderBotMessage("Fetching nearby stores... 🏬");
-
+            renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+            renderBotMessage("Fetching nearby stores...");
             try {
               const res = await fetch(`${config.backend}/chat/nearby-stores`, {
                 method: "POST",
@@ -292,34 +236,33 @@
                 }),
               });
               const json = await res.json();
-
               if (json?.data?.stores?.length) {
-                renderBotMessage(`🗺️ Found ${json.data.stores.length} nearby store(s):`);
                 json.data.stores.forEach((s) => {
                   chatBody.innerHTML += `
                     <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
                       <b>${s.storeName}</b><br/>
-                      ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
+                      ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${
+                    s.postalCode ? "- " + s.postalCode : ""
+                  }<br/>
                       ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
-                      ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
+                      ${
+                        s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""
+                      }
                       <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
                          style="color:${theme.primary};font-weight:600;">📍 View on Map</a>
                     </div>`;
                 });
-              } else {
-                renderBotMessage("😔 No nearby stores found.");
-              }
-            } catch (e) {
-              renderBotMessage("⚠️ Unable to fetch nearby stores. Please try again later.");
+              } else renderBotMessage("😔 No nearby stores found.");
+            } catch {
+              renderBotMessage("⚠️ Error fetching store list.");
             }
           },
-          () => renderBotMessage("❌ Location permission denied. Please allow access to find nearby stores.")
+          () => renderBotMessage("❌ Permission denied for location.")
         );
         inputContainer.style.display = "none";
         return;
       }
 
-      // Default conversational submenu
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
       inputContainer.style.display = "flex";
       sendButton.onclick = () => {
@@ -358,7 +301,7 @@
 
     async function showSubMenus(menu) {
       clearBody();
-      inputContainer.style.display = "none";
+      renderBackToMenu();
       renderUserMessage(menu.title);
       renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
       const subs = await fetchSubMenus(menu.id);
@@ -379,12 +322,12 @@
         sbtn.onclick = () => handleSubmenu(sub);
         chatBody.appendChild(sbtn);
       });
-      renderBackToMenu(); // ✅ show back to main menu also at submenu list
     }
 
     // --- Toggle ---
     button.onclick = () => {
-      chatWindow.style.display = chatWindow.style.display === "flex" ? "none" : "flex";
+      chatWindow.style.display =
+        chatWindow.style.display === "flex" ? "none" : "flex";
       if (chatWindow.style.display === "flex") showGreeting();
     };
   }
