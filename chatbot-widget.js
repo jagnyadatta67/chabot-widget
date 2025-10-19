@@ -3,6 +3,595 @@
     document.currentScript ||
     Array.from(document.querySelectorAll('script[src*="chatbot-widget.js"]')).pop();
 
+  // --- Inject CSS Styles ---
+  const style = document.createElement('style');
+  style.textContent = `
+    /* ====================================
+       CHATBOT WIDGET - RESPONSIVE CSS
+       ==================================== */
+
+    /* Base Container Styles */
+    #chatbot-container {
+      position: fixed;
+      bottom: 90px;
+      right: 25px;
+      width: 360px;
+      height: 540px;
+      max-height: calc(100vh - 120px);
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      z-index: 9999;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Floating Button */
+    #chatbot-button {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 9999;
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      animation: pulse 2s infinite;
+    }
+
+    #chatbot-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      50% {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      }
+    }
+
+    /* Chat Header */
+    .chatbot-header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    #close-chat {
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    #close-chat:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Chat Body */
+    #chat-body {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+      background: #fafafa;
+      scroll-behavior: smooth;
+    }
+
+    /* Custom Scrollbar */
+    #chat-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat-body::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    #chat-body::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 10px;
+    }
+
+    #chat-body::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+
+    /* Chat Bubbles */
+    .bubble {
+      word-wrap: break-word;
+      word-break: break-word;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .bot-bubble {
+      background: #f3f4f6;
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin: 6px 0;
+      max-width: 88%;
+      align-self: flex-start;
+    }
+
+    .user-bubble {
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin: 6px 0;
+      align-self: flex-end;
+      max-width: 88%;
+      color: white;
+    }
+
+    /* Menu & Submenu Buttons */
+    #chat-body button {
+      width: 100%;
+      margin: 6px 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    #chat-body button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #chat-body button:active {
+      transform: translateY(0);
+    }
+
+    /* Back to Menu Button */
+    #back-to-menu-btn {
+      width: 90%;
+      margin: 10px auto;
+      display: block;
+      padding: 10px;
+      border-radius: 10px;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    #back-to-menu-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Input Container */
+    #chat-input-container {
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      background: white;
+    }
+
+    #chat-input {
+      flex: 1;
+      padding: 10px 12px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    #chat-input::placeholder {
+      color: #9ca3af;
+    }
+
+    #chat-send {
+      border: none;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      color: white;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    #chat-send:hover {
+      opacity: 0.9;
+    }
+
+    #chat-send:active {
+      opacity: 0.8;
+    }
+
+    /* Footer */
+    #chat-footer {
+      text-align: center;
+      font-size: 12px;
+      padding: 8px;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+      flex-shrink: 0;
+      color: #6b7280;
+    }
+
+    #chat-footer img {
+      height: 20px;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+
+    /* Order Cards */
+    .bubble.bot-bubble img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Copy Toast Notification */
+    #chat-copy-toast {
+      position: fixed;
+      bottom: 160px;
+      right: 30px;
+      background: #111;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      z-index: 10000;
+      opacity: 0.95;
+      font-size: 13px;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 0.95;
+        transform: translateY(0);
+      }
+    }
+
+    /* Links in Chat */
+    #chat-body a {
+      color: #007bff;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+
+    #chat-body a:hover {
+      color: #0056b3;
+    }
+
+    /* ====================================
+       RESPONSIVE BREAKPOINTS
+       ==================================== */
+
+    /* Tablets (768px and below) */
+    @media screen and (max-width: 768px) {
+      #chatbot-container {
+        width: 340px;
+        height: 500px;
+        right: 15px;
+        bottom: 80px;
+      }
+
+      #chatbot-button {
+        width: 60px;
+        height: 60px;
+        right: 15px;
+        bottom: 15px;
+      }
+
+      #chatbot-button > div > div:first-child {
+        width: 55px;
+        height: 55px;
+      }
+
+      #chatbot-button img {
+        width: 48px !important;
+      }
+
+      .bot-bubble,
+      .user-bubble {
+        max-width: 90%;
+        font-size: 13px;
+      }
+    }
+
+    /* Mobile Landscape & Small Tablets (667px and below) */
+    @media screen and (max-width: 667px) {
+      #chatbot-container {
+        width: 320px;
+        height: 480px;
+        max-height: calc(100vh - 100px);
+      }
+
+      #chat-body {
+        padding: 8px;
+      }
+
+      #chat-body button {
+        padding: 9px 10px;
+        font-size: 13px;
+      }
+    }
+
+    /* Mobile Portrait (480px and below) */
+    @media screen and (max-width: 480px) {
+      #chatbot-container {
+        width: calc(100vw - 20px);
+        max-width: 380px;
+        height: 460px;
+        right: 10px;
+        bottom: 75px;
+        border-radius: 12px;
+      }
+
+      #chatbot-button {
+        width: 56px;
+        height: 56px;
+        right: 10px;
+        bottom: 10px;
+      }
+
+      #chatbot-button > div > div:first-child {
+        width: 50px;
+        height: 50px;
+      }
+
+      #chatbot-button img {
+        width: 44px !important;
+      }
+
+      .bot-bubble,
+      .user-bubble {
+        font-size: 13px;
+        padding: 7px 10px;
+      }
+
+      #chat-input {
+        font-size: 13px;
+        padding: 9px 10px;
+      }
+
+      #chat-send {
+        padding: 9px 14px;
+        font-size: 13px;
+      }
+
+      #back-to-menu-btn {
+        width: 92%;
+        padding: 9px;
+        font-size: 13px;
+      }
+
+      #chat-footer {
+        font-size: 11px;
+        padding: 6px;
+      }
+
+      #chat-footer img {
+        height: 18px;
+      }
+    }
+
+    /* Small Mobile (375px and below) */
+    @media screen and (max-width: 375px) {
+      #chatbot-container {
+        width: calc(100vw - 16px);
+        height: 440px;
+        right: 8px;
+        bottom: 70px;
+      }
+
+      #chatbot-button {
+        width: 52px;
+        height: 52px;
+        right: 8px;
+        bottom: 8px;
+      }
+
+      #chatbot-button > div > div:first-child {
+        width: 46px;
+        height: 46px;
+      }
+
+      #chatbot-button img {
+        width: 40px !important;
+      }
+
+      #chat-body {
+        padding: 6px;
+        font-size: 12px;
+      }
+
+      .bot-bubble,
+      .user-bubble {
+        font-size: 12px;
+        padding: 6px 9px;
+      }
+
+      #chat-body button {
+        padding: 8px 9px;
+        font-size: 12px;
+      }
+    }
+
+    /* Extra Small Mobile (320px) */
+    @media screen and (max-width: 320px) {
+      #chatbot-container {
+        width: calc(100vw - 12px);
+        height: 420px;
+        right: 6px;
+        bottom: 65px;
+        border-radius: 10px;
+      }
+
+      #chatbot-button {
+        width: 48px;
+        height: 48px;
+        right: 6px;
+        bottom: 6px;
+      }
+
+      #chatbot-button > div > div:first-child {
+        width: 42px;
+        height: 42px;
+        border-width: 2px;
+      }
+
+      #chatbot-button img {
+        width: 36px !important;
+      }
+
+      .bot-bubble,
+      .user-bubble {
+        font-size: 11px;
+        padding: 6px 8px;
+        margin: 4px 0;
+      }
+
+      #chat-input {
+        font-size: 12px;
+        padding: 8px;
+      }
+
+      #chat-send {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+    }
+
+    /* ====================================
+       LANDSCAPE ORIENTATION ADJUSTMENTS
+       ==================================== */
+
+    @media screen and (max-height: 500px) and (orientation: landscape) {
+      #chatbot-container {
+        height: calc(100vh - 80px);
+        max-height: 380px;
+        bottom: 65px;
+      }
+
+      #chatbot-button {
+        width: 50px;
+        height: 50px;
+        bottom: 8px;
+      }
+
+      #chatbot-button > div > div:first-child {
+        width: 44px;
+        height: 44px;
+      }
+
+      #chat-body {
+        padding: 6px;
+      }
+    }
+
+    /* ====================================
+       FULL SCREEN MOBILE (iPhone notch, etc.)
+       ==================================== */
+
+    @media screen and (max-width: 480px) {
+      #chatbot-container {
+        bottom: max(75px, env(safe-area-inset-bottom, 75px));
+      }
+
+      #chatbot-button {
+        bottom: max(10px, env(safe-area-inset-bottom, 10px));
+        right: max(10px, env(safe-area-inset-right, 10px));
+      }
+    }
+
+    /* ====================================
+       ACCESSIBILITY & UTILITY CLASSES
+       ==================================== */
+
+    #chat-input:focus,
+    #chat-body button:focus,
+    #back-to-menu-btn:focus,
+    #chat-send:focus {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+
+    #chat-send:disabled,
+    #chat-body button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #chatbot-container.show {
+      display: flex;
+      animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      #chatbot-button,
+      #chatbot-container {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+    }
+
+    @media print {
+      #chatbot-container,
+      #chatbot-button {
+        display: none !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
   // --- Config ---
   const config = {
     backend:
@@ -65,8 +654,6 @@
     const renderBotMessage = (msg) => {
       const bubble = document.createElement("div");
       bubble.className = "bubble bot-bubble";
-      bubble.style =
-        "background:#f3f4f6;border-radius:12px;padding:8px 12px;margin:6px 0;max-width:88%;";
       bubble.innerHTML = msg.replace(/\n/g, "<br/>");
       chatBody.appendChild(bubble);
       chatBody.scrollTop = chatBody.scrollHeight;
@@ -75,7 +662,7 @@
     const renderUserMessage = (msg) => {
       const bubble = document.createElement("div");
       bubble.className = "bubble user-bubble";
-      bubble.style = `background:${theme.gradient};color:white;border-radius:12px;padding:8px 12px;margin:6px 0;align-self:flex-end;max-width:88%;`;
+      bubble.style.background = theme.gradient;
       bubble.innerHTML = msg;
       chatBody.appendChild(bubble);
       chatBody.scrollTop = chatBody.scrollHeight;
@@ -83,34 +670,21 @@
 
     // --- Back to Menu: always inserted above footer (bottom) ---
     const renderBackToMenu = () => {
-      // remove existing if any
       const existing = document.getElementById("back-to-menu-btn");
       if (existing) existing.remove();
 
       const backBtn = document.createElement("button");
       backBtn.id = "back-to-menu-btn";
       backBtn.textContent = "⬅️ Back to Main Menu";
-      Object.assign(backBtn.style, {
-        width: "90%",
-        margin: "10px auto",
-        display: "block",
-        padding: "10px",
-        border: `1px solid ${theme.primary}`,
-        borderRadius: "10px",
-        background: "#fff",
-        color: theme.primary,
-        cursor: "pointer",
-        fontWeight: "600",
-      });
+      backBtn.style.border = `1px solid ${theme.primary}`;
+      backBtn.style.color = theme.primary;
 
       backBtn.onclick = () => showGreeting();
 
-      // Insert before footer inside chatWindow so it stays at bottom
       const footer = chatWindow.querySelector("#chat-footer");
       if (footer && footer.parentNode) {
         footer.parentNode.insertBefore(backBtn, footer);
       } else {
-        // fallback: append to chatWindow
         chatWindow.appendChild(backBtn);
       }
     };
@@ -130,7 +704,7 @@
       POLICY_QUESTION: handleGeneralIntent,
       GENERAL_QUERY: handleGeneralIntent,
       ORDER_TRACKING: handleOrderTracking,
-      CUSTOMER_PROFILE:handleCustomerProfile,
+      CUSTOMER_PROFILE: handleCustomerProfile,
       DEFAULT: handleDefaultIntent,
     };
 
@@ -167,31 +741,24 @@
       renderBackToMenu();
     }
 
-
     function handleCustomerProfile(payload) {
-
-
       if (checkAndTriggerLogin(payload, "Please login to check your order details.")) return;
 
-
-
       const profile = payload.customerProfile;
-    
+
       if (!profile) {
-        renderBotMessage("Sorry, I couldn’t fetch your profile details.");
+        renderBotMessage("Sorry, I couldn't fetch your profile details.");
         renderBackToMenu();
         return;
       }
-    
-      // Use top-level or inner chat message if available
-      const chatMsg =
-        payload?.data?.chat_message || profile?.chat_message || "";
-    
+
+      const chatMsg = payload?.data?.chat_message || profile?.chat_message || "";
+
       if (chatMsg.trim() !== "") {
         renderBotMessage(chatMsg);
       } else {
         renderBotMessage("<b>🧾 Customer Details:</b>");
-    
+
         chatBody.innerHTML += `
           <div class="bubble bot-bubble">
             <b>Name:</b> ${profile.name || "N/A"}<br/>
@@ -207,84 +774,51 @@
             }
           </div>`;
       }
-    
+
       renderBackToMenu();
     }
-    
-    function triggerLoginPopup() {
-      setTimeout(() => {
-        const signupBtn = document.getElementById("account-actions-signup");
-        if (signupBtn) {
-          signupBtn.click();
-          console.log("🔑 Triggered signup/login popup automatically");
-        } else {
-          console.warn("⚠️ Signup button not found (id='account-actions-signup').");
-        }
-      }, 600);
-    }
 
-    /**
- * Checks if backend response requires user login,
- * based on the chat_message content.
- * If detected, renders message and triggers login popup.
- *
- * @param {Object} payload - The API/chatbot response object.
- * @param {string} [defaultMsg] - Optional fallback message to show.
- * @returns {boolean} true if login popup was triggered, else false.
- */
-/**
- * Checks if backend message asks user to login.
- * If yes, shows a clickable "Login" link that triggers the popup.
- *
- * @param {Object} payload - Chatbot API response.
- * @param {string} [defaultMsg] - Optional fallback message.
- * @returns {boolean} true if login link rendered, else false.
- */
-function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.") {
-  const cht = payload?.data?.chat_message || payload?.chat_message || "";
-  const normalizedMsg = cht.trim().toLowerCase();
+    function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.") {
+      const cht = payload?.data?.chat_message || payload?.chat_message || "";
+      const normalizedMsg = cht.trim().toLowerCase();
 
-  const isLoginPrompt =
-    normalizedMsg.includes("login") ||
-    normalizedMsg.includes("sign in") ||
-    normalizedMsg.includes("signin") ||
-    normalizedMsg.includes("anonymous user");
+      const isLoginPrompt =
+        normalizedMsg.includes("login") ||
+        normalizedMsg.includes("sign in") ||
+        normalizedMsg.includes("signin") ||
+        normalizedMsg.includes("anonymous user");
 
-  if (isLoginPrompt) {
-    // Render message + clickable link
-    renderBotMessage(`
-      ${cht || defaultMsg}
-      <br><br>
-      <a href="#" id="chat-login-link" style="color:#007bff; text-decoration:underline; cursor:pointer;">
-        🔐 Click here to Login
-      </a>
-    `);
+      if (isLoginPrompt) {
+        renderBotMessage(`
+          ${cht || defaultMsg}
+          <br><br>
+          <a href="#" id="chat-login-link" style="color:#007bff; text-decoration:underline; cursor:pointer;">
+            🔐 Click here to Login
+          </a>
+        `);
 
-    // Attach click listener after rendering
-    setTimeout(() => {
-      const loginLink = document.getElementById("chat-login-link");
-      if (loginLink) {
-        loginLink.addEventListener("click", (e) => {
-          e.preventDefault();
-          const signupBtn = document.getElementById("account-actions-signup");
-          if (signupBtn) {
-            signupBtn.click();
-            console.log("🔑 Login popup triggered from chat link");
-          } else {
-            console.warn("⚠️ Login popup element not found: #account-actions-signup");
+        setTimeout(() => {
+          const loginLink = document.getElementById("chat-login-link");
+          if (loginLink) {
+            loginLink.addEventListener("click", (e) => {
+              e.preventDefault();
+              const signupBtn = document.getElementById("account-actions-signup");
+              if (signupBtn) {
+                signupBtn.click();
+                console.log("🔑 Login popup triggered from chat link");
+              } else {
+                console.warn("⚠️ Login popup element not found: #account-actions-signup");
+              }
+            });
           }
-        });
+        }, 300);
+
+        renderBackToMenu();
+        return true;
       }
-    }, 300);
 
-    renderBackToMenu();
-    return true;
-  }
-
-  return false;
-}
-
-
+      return false;
+    }
 
     // --- Extract Order Number ---
     function extractOrderNumber(orderNo) {
@@ -308,18 +842,6 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         if (!toast) {
           toast = document.createElement("div");
           toast.id = "chat-copy-toast";
-          Object.assign(toast.style, {
-            position: "fixed",
-            bottom: "160px",
-            right: "30px",
-            background: "#111",
-            color: "#fff",
-            padding: "8px 12px",
-            borderRadius: "6px",
-            zIndex: 10000,
-            opacity: 0.95,
-            fontSize: "13px",
-          });
           document.body.appendChild(toast);
         }
         toast.textContent = "✅ Order number copied!";
@@ -341,16 +863,8 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
       const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
       const statusBadge = o.latestStatus
-  ? `<span style="
-      display:inline-block;
-      padding:4px 8px;
-      font-weight:600;
-      font-size:12px;
-      color:white;
-      background:${theme.primary};
-      margin-left:6px;
-      border-radius:4px;">${o.latestStatus}</span>`
-  : "";
+        ? `<span style="display:inline-block;padding:4px 8px;font-weight:600;font-size:12px;color:white;background:${theme.primary};margin-left:6px;border-radius:4px;">${o.latestStatus}</span>`
+        : "";
       return `
         <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:12px;border-radius:12px;margin-top:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
           <div style="display:flex;gap:12px;align-items:flex-start;">
@@ -381,7 +895,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         </div>`;
     };
 
-    // --- Send Message (unchanged) ---
+    // --- Send Message ---
     async function sendMessage(type, userMessage) {
       const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
       try {
@@ -411,7 +925,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       }
     }
 
-    // --- Menus, Submenus, etc. (same as before) ---
+    // --- Menus, Submenus, etc. ---
     async function showGreeting() {
       clearBody();
       inputContainer.style.display = "none";
@@ -419,23 +933,15 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       renderBotMessage("Please choose an option below 👇");
       const menus = await fetchMenus();
       menus.forEach((menu) => renderMenuButton(menu));
-      // show back button at bottom after rendering menu
       renderBackToMenu();
     }
 
     const renderMenuButton = (menu) => {
       const btn = document.createElement("button");
       btn.textContent = menu.title;
-      Object.assign(btn.style, {
-        width: "100%",
-        margin: "6px 0",
-        padding: "10px",
-        border: `1px solid ${theme.primary}`,
-        borderRadius: "10px",
-        background: "#fff",
-        color: theme.primary,
-        cursor: "pointer",
-      });
+      btn.style.border = `1px solid ${theme.primary}`;
+      btn.style.background = "#fff";
+      btn.style.color = theme.primary;
       btn.onclick = () => showSubMenus(menu);
       chatBody.appendChild(btn);
     };
@@ -451,23 +957,15 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         return;
       }
       subs.forEach((sub) => renderSubmenuButton(sub));
-      // ensure back button is at bottom after submenu items
       renderBackToMenu();
     }
 
     const renderSubmenuButton = (sub) => {
       const sbtn = document.createElement("button");
       sbtn.textContent = sub.title;
-      Object.assign(sbtn.style, {
-        width: "100%",
-        margin: "6px 0",
-        padding: "10px",
-        border: `1px solid ${theme.primary}`,
-        borderRadius: "10px",
-        background: sub.type === "dynamic" ? "#EEF2FF" : "#fff",
-        color: theme.primary,
-        cursor: "pointer",
-      });
+      sbtn.style.border = `1px solid ${theme.primary}`;
+      sbtn.style.background = sub.type === "dynamic" ? "#EEF2FF" : "#fff";
+      sbtn.style.color = theme.primary;
       sbtn.onclick = () => handleSubmenu(sub);
       chatBody.appendChild(sbtn);
     };
@@ -476,7 +974,6 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       clearBody();
       renderUserMessage(sub.title);
       if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
-        // nearby store flow will add results then back button
         await handleNearbyStore();
         renderBackToMenu();
         return;
@@ -490,7 +987,6 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         sendMessage(sub.type, msg);
         inputField.value = "";
       };
-      // render back button after showing input
       renderBackToMenu();
     }
 
@@ -531,7 +1027,6 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
                   </div>`;
               });
             } else renderBotMessage("😔 No nearby stores found.");
-            // after nearby stores, ensure back button at bottom
             renderBackToMenu();
           } catch {
             renderBotMessage("⚠️ Error fetching store list.");
@@ -558,21 +1053,8 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
           <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
         </div>
-        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};Color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
+        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
       </div>`;
-    Object.assign(button.style, {
-      position: "fixed",
-      bottom: "25px",
-      right: "25px",
-      width: "70px",
-      height: "70px",
-      borderRadius: "50%",
-      cursor: "pointer",
-      zIndex: "9999",
-      transition: "transform 0.2s ease-in-out",
-    });
-    button.onmouseenter = () => (button.style.transform = "scale(1.1)");
-    button.onmouseleave = () => (button.style.transform = "scale(1)");
     button.onclick = () => {
       chatWindow.style.display = chatWindow.style.display === "flex" ? "none" : "flex";
       if (chatWindow.style.display === "flex") showGreeting();
@@ -583,50 +1065,33 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
   function createChatWindow() {
     const chatWindow = document.createElement("div");
     chatWindow.id = "chatbot-container";
-    chatWindow.style.cssText = `
-      position: fixed;
-      bottom: 90px;
-      right: 25px;
-      width: 360px;
-      height: 540px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-      font-family: 'Inter', Arial, sans-serif;
-      border: 2px solid ${theme.primary};
-      z-index: 9999;
-    `;
-  
-    // Apply white logo filter only for darker themes (Max, Lifestyle, Homecentre)
+    chatWindow.style.border = `2px solid ${theme.primary}`;
+
     const isDarkHeader = ["MAX", "LIFESTYLE", "HOMECENTRE"].includes(config.concept);
     const logoFilter = isDarkHeader ? "filter: brightness(0) invert(1);" : "";
-  
+
     chatWindow.innerHTML = `
-      <div style="background:${theme.gradient};color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:600;">
+      <div class="chatbot-header" style="background:${theme.gradient};">
         <span style="display:flex;align-items:center;gap:8px;">
           <img src="${theme.logo}" style="height:22px;${logoFilter}" alt="${config.concept} logo">
           <span>Chat Service</span>
         </span>
-        <span id="close-chat" style="cursor:pointer;">✖</span>
+        <span id="close-chat">✖</span>
       </div>
-      <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;font-size:14px;"></div>
-      <div id="chat-input-container" style="display:none;border-top:1px solid #e5e7eb;display:flex;">
-        <input id="chat-input" placeholder="Type your message..." style="flex:1;padding:10px;border:none;outline:none;">
-        <button id="chat-send" style="background:${theme.gradient};color:white;border:none;padding:10px 16px;cursor:pointer;">Send</button>
+      <div id="chat-body"></div>
+      <div id="chat-input-container" style="display:none;">
+        <input id="chat-input" placeholder="Type your message...">
+        <button id="chat-send" style="background:${theme.gradient};">Send</button>
       </div>
-      <div id="chat-footer" style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
+      <div id="chat-footer">
         Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
       </div>`;
-  
+
     document.body.appendChild(chatWindow);
-  
+
     chatWindow.querySelector("#close-chat").onclick = () => (chatWindow.style.display = "none");
     return chatWindow;
   }
-  
 
   // --- Initialize ---
   if (document.readyState === "loading") {

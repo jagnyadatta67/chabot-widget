@@ -145,6 +145,7 @@
     }
 
     function handleOrderTracking(payload) {
+      if (checkAndTriggerLogin(payload, "Please login to check your order details.")) return;
       if (payload.chat_message && payload.chat_message.trim() !== "") {
         renderBotMessage(payload.chat_message);
       } else {
@@ -168,7 +169,13 @@
 
 
     function handleCustomerProfile(payload) {
-      const profile = payload?.data?.customerProfile;
+
+
+      if (checkAndTriggerLogin(payload, "Please login to check your order details.")) return;
+
+
+
+      const profile = payload.customerProfile;
     
       if (!profile) {
         renderBotMessage("Sorry, I couldn’t fetch your profile details.");
@@ -204,6 +211,80 @@
       renderBackToMenu();
     }
     
+    function triggerLoginPopup() {
+      setTimeout(() => {
+        const signupBtn = document.getElementById("account-actions-signup");
+        if (signupBtn) {
+          signupBtn.click();
+          console.log("🔑 Triggered signup/login popup automatically");
+        } else {
+          console.warn("⚠️ Signup button not found (id='account-actions-signup').");
+        }
+      }, 600);
+    }
+
+    /**
+ * Checks if backend response requires user login,
+ * based on the chat_message content.
+ * If detected, renders message and triggers login popup.
+ *
+ * @param {Object} payload - The API/chatbot response object.
+ * @param {string} [defaultMsg] - Optional fallback message to show.
+ * @returns {boolean} true if login popup was triggered, else false.
+ */
+/**
+ * Checks if backend message asks user to login.
+ * If yes, shows a clickable "Login" link that triggers the popup.
+ *
+ * @param {Object} payload - Chatbot API response.
+ * @param {string} [defaultMsg] - Optional fallback message.
+ * @returns {boolean} true if login link rendered, else false.
+ */
+function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.") {
+  const cht = payload?.data?.chat_message || payload?.chat_message || "";
+  const normalizedMsg = cht.trim().toLowerCase();
+
+  const isLoginPrompt =
+    normalizedMsg.includes("login") ||
+    normalizedMsg.includes("sign in") ||
+    normalizedMsg.includes("signin") ||
+    normalizedMsg.includes("anonymous user");
+
+  if (isLoginPrompt) {
+    // Render message + clickable link
+    renderBotMessage(`
+      ${cht || defaultMsg}
+      <br><br>
+      <a href="#" id="chat-login-link" style="color:#007bff; text-decoration:underline; cursor:pointer;">
+        🔐 Click here to Login
+      </a>
+    `);
+
+    // Attach click listener after rendering
+    setTimeout(() => {
+      const loginLink = document.getElementById("chat-login-link");
+      if (loginLink) {
+        loginLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          const signupBtn = document.getElementById("account-actions-signup");
+          if (signupBtn) {
+            signupBtn.click();
+            console.log("🔑 Login popup triggered from chat link");
+          } else {
+            console.warn("⚠️ Login popup element not found: #account-actions-signup");
+          }
+        });
+      }
+    }, 300);
+
+    renderBackToMenu();
+    return true;
+  }
+
+  return false;
+}
+
+
 
     // --- Extract Order Number ---
     function extractOrderNumber(orderNo) {
@@ -260,9 +341,16 @@
       const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
       const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
       const statusBadge = o.latestStatus
-        ? `<span style="display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid ${theme.primary};font-weight:600;font-size:12px;color:${theme.primary};margin-left:6px;">${o.latestStatus}</span>`
-        : "";
-
+  ? `<span style="
+      display:inline-block;
+      padding:4px 8px;
+      font-weight:600;
+      font-size:12px;
+      color:white;
+      background:${theme.primary};
+      margin-left:6px;
+      border-radius:4px;">${o.latestStatus}</span>`
+  : "";
       return `
         <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:12px;border-radius:12px;margin-top:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
           <div style="display:flex;gap:12px;align-items:flex-start;">
