@@ -232,7 +232,15 @@
  * @param {string} [defaultMsg] - Optional fallback message to show.
  * @returns {boolean} true if login popup was triggered, else false.
  */
-function checkAndTriggerLogin(payload, defaultMsg = "Please login to check your details.") {
+/**
+ * Checks if backend message asks user to login.
+ * If yes, shows a clickable "Login" link that triggers the popup.
+ *
+ * @param {Object} payload - Chatbot API response.
+ * @param {string} [defaultMsg] - Optional fallback message.
+ * @returns {boolean} true if login link rendered, else false.
+ */
+function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.") {
   const cht = payload?.data?.chat_message || payload?.chat_message || "";
   const normalizedMsg = cht.trim().toLowerCase();
 
@@ -243,14 +251,39 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to check your 
     normalizedMsg.includes("anonymous user");
 
   if (isLoginPrompt) {
-    renderBotMessage(cht || defaultMsg);
-    triggerLoginPopup();
+    // Render message + clickable link
+    renderBotMessage(`
+      ${cht || defaultMsg}
+      <br><br>
+      <a href="#" id="chat-login-link" style="color:#007bff; text-decoration:underline; cursor:pointer;">
+        🔐 Click here to Login
+      </a>
+    `);
+
+    // Attach click listener after rendering
+    setTimeout(() => {
+      const loginLink = document.getElementById("chat-login-link");
+      if (loginLink) {
+        loginLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          const signupBtn = document.getElementById("account-actions-signup");
+          if (signupBtn) {
+            signupBtn.click();
+            console.log("🔑 Login popup triggered from chat link");
+          } else {
+            console.warn("⚠️ Login popup element not found: #account-actions-signup");
+          }
+        });
+      }
+    }, 300);
+
     renderBackToMenu();
     return true;
   }
 
   return false;
 }
+
 
 
     // --- Extract Order Number ---
