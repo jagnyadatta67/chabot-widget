@@ -278,7 +278,7 @@
     /* Back to Menu Button */
     #back-to-menu-btn {
       width: 90%;
-      margin: 12px auto;
+      margin: 12px auto 8px auto;
       display: block;
       padding: 12px;
       border-radius: 12px;
@@ -287,6 +287,8 @@
       font-weight: 600;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      position: relative;
+      z-index: 10;
     }
 
     #back-to-menu-btn:hover {
@@ -1050,9 +1052,20 @@
       renderWelcomeScreen();
       renderBotMessage(`Hi there! 👋 I'm here to help you with:`);
       renderPromoBanner();
-      const menus = await fetchMenus();
-      menus.forEach((menu) => renderMenuButton(menu));
-      renderBackToMenu();
+      
+      try {
+        const menus = await fetchMenus();
+        if (menus && menus.length > 0) {
+          menus.forEach((menu) => renderMenuButton(menu));
+        } else {
+          renderBotMessage("No menu options available at the moment.");
+        }
+      } catch (error) {
+        console.error("Error fetching menus:", error);
+        renderBotMessage("⚠️ Unable to load menu options. Please try again.");
+      }
+      
+      // Don't show back button on main greeting
     }
 
     const renderMenuButton = (menu) => {
@@ -1084,15 +1097,22 @@
 
     async function showSubMenus(menu) {
       clearBody();
+      inputContainer.style.display = "none"; // Hide input when showing submenu
       renderUserMessage(menu.title);
       renderBotMessage(`Great choice! Let me show you the options for <b>${menu.title}</b>...`);
-      const subs = await fetchSubMenus(menu.id);
-      if (!subs?.length) {
-        renderBotMessage("No sub-options found at the moment. 😔");
-        renderBackToMenu();
-        return;
+      
+      try {
+        const subs = await fetchSubMenus(menu.id);
+        if (!subs?.length) {
+          renderBotMessage("No sub-options found at the moment. 😔");
+        } else {
+          subs.forEach((sub) => renderSubmenuButton(sub));
+        }
+      } catch (error) {
+        console.error("Error fetching submenus:", error);
+        renderBotMessage("⚠️ Unable to load options. Please try again.");
       }
-      subs.forEach((sub) => renderSubmenuButton(sub));
+      
       renderBackToMenu();
     }
 
