@@ -168,7 +168,7 @@
 
 
     function handleCustomerProfile(payload) {
-      const profile = payload?.data?.customerProfile;
+      const profile = payload.customerProfile;
     
       if (!profile) {
         renderBotMessage("Sorry, I couldn’t fetch your profile details.");
