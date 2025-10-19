@@ -428,7 +428,15 @@
     button.innerHTML = `
       <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-          <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
+         <span style="display:flex;align-items:center;gap:6px;">
+  <img 
+    src="${theme.logo}" 
+    style="height:22px;filter: brightness(0) invert(1);" 
+    alt="${config.concept} logo"
+  />
+  <span style="font-weight:600;">Chat Service</span>
+</span>
+
         </div>
         <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};Color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
       </div>`;
