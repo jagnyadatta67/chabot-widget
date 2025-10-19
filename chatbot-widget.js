@@ -145,6 +145,7 @@
     }
 
     function handleOrderTracking(payload) {
+      if (checkAndTriggerLogin(payload, "Please login to check your order details.")) return;
       if (payload.chat_message && payload.chat_message.trim() !== "") {
         renderBotMessage(payload.chat_message);
       } else {
@@ -170,16 +171,8 @@
     function handleCustomerProfile(payload) {
 
 
-      const cht = payload?.data?.chat_message || payload?.chat_message || "";
-      const orderList = payload?.data?.orderDetailsList || payload?.orderDetailsList || [];
-    
-      // Case: API returns chat message indicating login issue or no data
-      if (cht && (!orderList || orderList.length === 0)) {
-        renderBotMessage(cht);
-        triggerLoginPopup();
-        renderBackToMenu();
-        return;
-      }
+      if (checkAndTriggerLogin(payload, "Please login to check your order details.")) return;
+
 
 
       const profile = payload.customerProfile;
@@ -229,6 +222,35 @@
         }
       }, 600);
     }
+
+    /**
+ * Checks if backend response requires user login,
+ * based on the chat_message content.
+ * If detected, renders message and triggers login popup.
+ *
+ * @param {Object} payload - The API/chatbot response object.
+ * @param {string} [defaultMsg] - Optional fallback message to show.
+ * @returns {boolean} true if login popup was triggered, else false.
+ */
+function checkAndTriggerLogin(payload, defaultMsg = "Please login to check your details.") {
+  const cht = payload?.data?.chat_message || payload?.chat_message || "";
+  const normalizedMsg = cht.trim().toLowerCase();
+
+  const isLoginPrompt =
+    normalizedMsg.includes("login") ||
+    normalizedMsg.includes("sign in") ||
+    normalizedMsg.includes("signin") ||
+    normalizedMsg.includes("anonymous user");
+
+  if (isLoginPrompt) {
+    renderBotMessage(cht || defaultMsg);
+    triggerLoginPopup();
+    renderBackToMenu();
+    return true;
+  }
+
+  return false;
+}
 
 
     // --- Extract Order Number ---
