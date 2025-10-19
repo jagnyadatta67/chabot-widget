@@ -81,17 +81,19 @@
       chatBody.scrollTop = chatBody.scrollHeight;
     };
 
+    // --- Back to Menu: always inserted above footer (bottom) ---
     const renderBackToMenu = () => {
-      // Remove any existing button
+      // remove existing if any
       const existing = document.getElementById("back-to-menu-btn");
       if (existing) existing.remove();
-    
+
       const backBtn = document.createElement("button");
       backBtn.id = "back-to-menu-btn";
       backBtn.textContent = "⬅️ Back to Main Menu";
       Object.assign(backBtn.style, {
-        width: "100%",
-        margin: "10px 0",
+        width: "90%",
+        margin: "10px auto",
+        display: "block",
         padding: "10px",
         border: `1px solid ${theme.primary}`,
         borderRadius: "10px",
@@ -100,19 +102,18 @@
         cursor: "pointer",
         fontWeight: "600",
       });
-    
+
       backBtn.onclick = () => showGreeting();
-    
-      // 🔹 Insert before the footer instead of top
-      const footer = chatWindow.querySelector("div[style*='Powered by']");
-      if (footer) {
-        chatWindow.insertBefore(backBtn, footer);
+
+      // Insert before footer inside chatWindow so it stays at bottom
+      const footer = chatWindow.querySelector("#chat-footer");
+      if (footer && footer.parentNode) {
+        footer.parentNode.insertBefore(backBtn, footer);
       } else {
-        // fallback in case footer not found
-        chatBody.appendChild(backBtn);
+        // fallback: append to chatWindow
+        chatWindow.appendChild(backBtn);
       }
     };
-    
 
     // --- API Helpers ---
     async function fetchMenus() {
@@ -290,6 +291,8 @@
       renderBotMessage("Please choose an option below 👇");
       const menus = await fetchMenus();
       menus.forEach((menu) => renderMenuButton(menu));
+      // show back button at bottom after rendering menu
+      renderBackToMenu();
     }
 
     const renderMenuButton = (menu) => {
@@ -311,12 +314,17 @@
 
     async function showSubMenus(menu) {
       clearBody();
-      renderBackToMenu();
       renderUserMessage(menu.title);
       renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
       const subs = await fetchSubMenus(menu.id);
-      if (!subs?.length) return renderBotMessage("No sub-options found.");
+      if (!subs?.length) {
+        renderBotMessage("No sub-options found.");
+        renderBackToMenu();
+        return;
+      }
       subs.forEach((sub) => renderSubmenuButton(sub));
+      // ensure back button is at bottom after submenu items
+      renderBackToMenu();
     }
 
     const renderSubmenuButton = (sub) => {
@@ -338,10 +346,12 @@
 
     async function handleSubmenu(sub) {
       clearBody();
-      renderBackToMenu();
       renderUserMessage(sub.title);
       if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
-        return handleNearbyStore();
+        // nearby store flow will add results then back button
+        await handleNearbyStore();
+        renderBackToMenu();
+        return;
       }
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
       inputContainer.style.display = "flex";
@@ -352,11 +362,16 @@
         sendMessage(sub.type, msg);
         inputField.value = "";
       };
+      // render back button after showing input
+      renderBackToMenu();
     }
 
     async function handleNearbyStore() {
       renderBotMessage("📍 Detecting your location...");
-      if (!navigator.geolocation) return renderBotMessage("⚠️ Geolocation not supported.");
+      if (!navigator.geolocation) {
+        renderBotMessage("⚠️ Geolocation not supported.");
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude: lat, longitude: lon } = pos.coords;
@@ -388,11 +403,17 @@
                   </div>`;
               });
             } else renderBotMessage("😔 No nearby stores found.");
+            // after nearby stores, ensure back button at bottom
+            renderBackToMenu();
           } catch {
             renderBotMessage("⚠️ Error fetching store list.");
+            renderBackToMenu();
           }
         },
-        () => renderBotMessage("❌ Permission denied for location.")
+        () => {
+          renderBotMessage("❌ Permission denied for location.");
+          renderBackToMenu();
+        }
       );
     }
 
@@ -409,7 +430,7 @@
         <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
           <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
         </div>
-        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
+        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};Color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
       </div>`;
     Object.assign(button.style, {
       position: "fixed",
@@ -461,7 +482,7 @@
         <input id="chat-input" placeholder="Type your message..." style="flex:1;padding:10px;border:none;outline:none;">
         <button id="chat-send" style="background:${theme.gradient};color:white;border:none;padding:10px 16px;cursor:pointer;">Send</button>
       </div>
-      <div style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
+      <div id="chat-footer" style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
         Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
       </div>`;
     document.body.appendChild(chatWindow);
