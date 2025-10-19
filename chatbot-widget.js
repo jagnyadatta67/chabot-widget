@@ -176,31 +176,51 @@
       return await res.json();
     }
 
-    // --- Send Message ---
-    async function sendMessage(type, userMessage) {
-      const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
-      try {
-        const body = {
-          message: userMessage,
-          question: userMessage,
-          userId: config.userid,
-          concept: config.concept,
-          env: config.env,
-        };
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const json = await res.json();
-        const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
-        const payload = json.data || json;
-         console.log(payload.data);
-        renderBotMessage(payload.chat_message || payload.data );
-      } catch (e) {
-        renderBotMessage("⚠️ Something went wrong. Please try again.");
-      }
+// --- Send Message ---
+async function sendMessage(type, userMessage) {
+  const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
+  try {
+    const body = {
+      message: userMessage,
+      question: userMessage,
+      userId: config.userid,
+      concept: config.concept,
+      env: config.env,
+    };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
     }
+
+    const json = await res.json();
+    console.log("🧠 Chatbot Response:", json);
+
+    const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
+    let messageToShow = "";
+
+    if (typeof json.data === "string") {
+      messageToShow = json.data;
+    } else if (json.data?.chat_message) {
+      messageToShow = json.data.chat_message;
+    } else if (json.chat_message) {
+      messageToShow = json.chat_message;
+    } else {
+      messageToShow = "No response available.";
+    }
+
+    renderBotMessage(messageToShow);
+  } catch (e) {
+    console.error("❌ Chatbot error:", e);
+    renderBotMessage("⚠️ Something went wrong. Please try again.");
+  }
+}
+
 
     // --- Handle Submenus ---
     async function handleSubmenu(sub) {
