@@ -7,7 +7,7 @@
   const style = document.createElement('style');
   style.textContent = `
     /* ====================================
-       CHATBOT WIDGET - RESPONSIVE CSS
+       CHATBOT WIDGET - BEAUTIFUL DESIGN
        ==================================== */
 
     /* Base Container Styles */
@@ -15,196 +15,312 @@
       position: fixed;
       bottom: 90px;
       right: 25px;
-      width: 360px;
-      height: 540px;
+      width: 380px;
+      height: 600px;
       max-height: calc(100vh - 120px);
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 1px rgba(0, 0, 0, 0.05);
       display: none;
       flex-direction: column;
       overflow: hidden;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
       z-index: 9999;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
     }
 
-    /* Floating Button */
+    #chatbot-container.show {
+      display: flex;
+      animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Floating Button with Gradient Ring */
     #chatbot-button {
       position: fixed;
       bottom: 25px;
       right: 25px;
-      width: 70px;
-      height: 70px;
+      width: 75px;
+      height: 75px;
       border-radius: 50%;
       cursor: pointer;
       z-index: 9999;
-      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-      animation: pulse 2s infinite;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: float 3s ease-in-out infinite, glow 2s ease-in-out infinite;
     }
 
     #chatbot-button:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      transform: scale(1.15) rotate(5deg);
     }
 
-    @keyframes pulse {
-      0%, 100% {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes glow {
+      0%, 100% { 
+        box-shadow: 0 0 20px rgba(248, 159, 23, 0.4), 
+                    0 0 40px rgba(248, 159, 23, 0.2);
       }
-      50% {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      50% { 
+        box-shadow: 0 0 30px rgba(248, 159, 23, 0.6), 
+                    0 0 60px rgba(248, 159, 23, 0.3);
       }
     }
 
-    /* Chat Header */
+    /* Chat Header with Glassmorphism */
     .chatbot-header {
-      padding: 12px 16px;
+      padding: 16px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
       color: white;
       flex-shrink: 0;
+      position: relative;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .chatbot-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
     }
 
     #close-chat {
       cursor: pointer;
-      font-size: 20px;
+      font-size: 22px;
       line-height: 1;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transition: background 0.2s;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     #close-chat:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(90deg);
     }
 
-    /* Chat Body */
+    /* Chat Body with Pattern Background */
     #chat-body {
       flex: 1;
-      padding: 10px;
+      padding: 16px;
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
       flex-direction: column;
       font-size: 14px;
-      background: #fafafa;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(248, 159, 23, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(48, 58, 178, 0.03) 0%, transparent 50%),
+        linear-gradient(to bottom, #fafbfc, #ffffff);
       scroll-behavior: smooth;
+      position: relative;
     }
 
-    /* Custom Scrollbar */
+    /* Enhanced Scrollbar */
     #chat-body::-webkit-scrollbar {
-      width: 6px;
+      width: 8px;
     }
 
     #chat-body::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: rgba(0, 0, 0, 0.05);
       border-radius: 10px;
+      margin: 8px 0;
     }
 
     #chat-body::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
+      background: linear-gradient(180deg, #c1c1c1, #a8a8a8);
       border-radius: 10px;
+      transition: background 0.3s;
     }
 
     #chat-body::-webkit-scrollbar-thumb:hover {
-      background: #a1a1a1;
+      background: linear-gradient(180deg, #a8a8a8, #909090);
     }
 
-    /* Chat Bubbles */
+    /* Chat Bubbles with Advanced Styling */
     .bubble {
       word-wrap: break-word;
       word-break: break-word;
-      animation: slideIn 0.3s ease-out;
+      animation: bubbleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
     }
 
-    @keyframes slideIn {
+    @keyframes bubbleIn {
       from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(15px) scale(0.9);
       }
       to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
       }
     }
 
     .bot-bubble {
-      background: #f3f4f6;
-      border-radius: 12px;
-      padding: 8px 12px;
-      margin: 6px 0;
-      max-width: 88%;
+      background: white;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 16px 16px 16px 4px;
+      padding: 12px 16px;
+      margin: 8px 0;
+      max-width: 85%;
       align-self: flex-start;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      position: relative;
+    }
+
+    .bot-bubble::before {
+      content: '🤖';
+      position: absolute;
+      left: -30px;
+      top: 0;
+      font-size: 20px;
+      animation: wave 2s ease-in-out infinite;
+    }
+
+    @keyframes wave {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(20deg); }
+      75% { transform: rotate(-20deg); }
     }
 
     .user-bubble {
-      border-radius: 12px;
-      padding: 8px 12px;
-      margin: 6px 0;
+      border-radius: 16px 16px 4px 16px;
+      padding: 12px 16px;
+      margin: 8px 0;
       align-self: flex-end;
-      max-width: 88%;
+      max-width: 85%;
       color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: hidden;
     }
 
-    /* Menu & Submenu Buttons */
+    .user-bubble::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translate(-100%, -100%); }
+      100% { transform: translate(100%, 100%); }
+    }
+
+    /* Menu & Submenu Buttons with Hover Effects */
     #chat-body button {
       width: 100%;
-      margin: 6px 0;
-      padding: 10px 12px;
-      border-radius: 10px;
+      margin: 8px 0;
+      padding: 14px 16px;
+      border-radius: 12px;
       cursor: pointer;
       font-size: 14px;
-      font-weight: 500;
-      transition: all 0.2s ease;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #chat-body button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    #chat-body button:hover::before {
+      width: 300px;
+      height: 300px;
     }
 
     #chat-body button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
 
     #chat-body button:active {
-      transform: translateY(0);
+      transform: translateY(-1px);
     }
 
     /* Back to Menu Button */
     #back-to-menu-btn {
       width: 90%;
-      margin: 10px auto;
+      margin: 12px auto;
       display: block;
-      padding: 10px;
-      border-radius: 10px;
-      background: #fff;
+      padding: 12px;
+      border-radius: 12px;
+      background: white;
       cursor: pointer;
       font-weight: 600;
-      transition: all 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     #back-to-menu-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
 
-    /* Input Container */
+    /* Input Container with Modern Design */
     #chat-input-container {
-      border-top: 1px solid #e5e7eb;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
       display: flex;
       align-items: center;
       flex-shrink: 0;
       background: white;
+      padding: 12px;
+      gap: 10px;
     }
 
     #chat-input {
       flex: 1;
-      padding: 10px 12px;
-      border: none;
+      padding: 12px 16px;
+      border: 2px solid rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
       outline: none;
       font-size: 14px;
       font-family: inherit;
+      transition: all 0.3s;
+      background: #fafbfc;
+    }
+
+    #chat-input:focus {
+      border-color: currentColor;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(248, 159, 23, 0.1);
     }
 
     #chat-input::placeholder {
@@ -213,313 +329,287 @@
 
     #chat-send {
       border: none;
-      padding: 10px 16px;
+      padding: 12px 20px;
       cursor: pointer;
       font-weight: 600;
       color: white;
-      transition: opacity 0.2s;
+      border-radius: 12px;
+      transition: all 0.3s;
       flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     #chat-send:hover {
-      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     }
 
     #chat-send:active {
-      opacity: 0.8;
+      transform: translateY(0);
     }
 
     /* Footer */
     #chat-footer {
       text-align: center;
-      font-size: 12px;
-      padding: 8px;
-      background: #fafafa;
-      border-top: 1px solid #eee;
+      font-size: 11px;
+      padding: 10px;
+      background: linear-gradient(to top, #f8f9fa, white);
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
       flex-shrink: 0;
       color: #6b7280;
+      font-weight: 500;
     }
 
     #chat-footer img {
-      height: 20px;
+      height: 18px;
       margin-left: 5px;
       vertical-align: middle;
+      opacity: 0.8;
     }
 
-    /* Order Cards */
-    .bubble.bot-bubble img {
+    /* Loading Animation */
+    .loading-spinner {
+      display: inline-flex;
+      gap: 4px;
+      padding: 8px 0;
+    }
+
+    .loading-spinner span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .loading-spinner span:nth-child(1) { animation-delay: -0.32s; }
+    .loading-spinner span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Welcome Screen */
+    .welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .welcome-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+      animation: bounce-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes bounce-in {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    .welcome-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #F89F17, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    /* Promotional Banner */
+    .promo-banner {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin: 10px 0;
+      text-align: center;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      animation: slideIn 0.5s ease-out;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .promo-banner:hover {
+      transform: scale(1.05);
+    }
+
+    .promo-banner .promo-icon {
+      font-size: 24px;
       display: block;
-      max-width: 100%;
-      height: auto;
+      margin-bottom: 4px;
     }
 
-    /* Copy Toast Notification */
+    /* Enhanced Order Cards */
+    .order-card {
+      background: white;
+      border: 2px solid transparent;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 12px 0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .order-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(180deg, #F89F17, #ff6b6b);
+    }
+
+    .order-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      border-color: rgba(248, 159, 23, 0.3);
+    }
+
+    /* Copy Toast with Animation */
     #chat-copy-toast {
       position: fixed;
       bottom: 160px;
       right: 30px;
-      background: #111;
+      background: linear-gradient(135deg, #10b981, #059669);
       color: #fff;
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 12px 20px;
+      border-radius: 10px;
       z-index: 10000;
-      opacity: 0.95;
-      font-size: 13px;
-      animation: fadeIn 0.3s ease-out;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+      animation: toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    @keyframes fadeIn {
+    @keyframes toastIn {
       from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateX(100px);
       }
       to {
-        opacity: 0.95;
-        transform: translateY(0);
+        opacity: 1;
+        transform: translateX(0);
       }
     }
 
     /* Links in Chat */
     #chat-body a {
-      color: #007bff;
-      text-decoration: underline;
-      transition: color 0.2s;
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      border-bottom: 2px solid transparent;
     }
 
     #chat-body a:hover {
-      color: #0056b3;
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 16px 16px 16px 4px;
+      width: fit-content;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .typing-indicator span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cbd5e0;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-10px); opacity: 1; }
     }
 
     /* ====================================
        RESPONSIVE BREAKPOINTS
        ==================================== */
 
-    /* Tablets (768px and below) */
     @media screen and (max-width: 768px) {
       #chatbot-container {
-        width: 340px;
-        height: 500px;
+        width: 360px;
+        height: 550px;
         right: 15px;
         bottom: 80px;
       }
 
       #chatbot-button {
-        width: 60px;
-        height: 60px;
+        width: 65px;
+        height: 65px;
         right: 15px;
         bottom: 15px;
       }
-
-      #chatbot-button > div > div:first-child {
-        width: 55px;
-        height: 55px;
-      }
-
-      #chatbot-button img {
-        width: 48px !important;
-      }
-
-      .bot-bubble,
-      .user-bubble {
-        max-width: 90%;
-        font-size: 13px;
-      }
     }
 
-    /* Mobile Landscape & Small Tablets (667px and below) */
-    @media screen and (max-width: 667px) {
-      #chatbot-container {
-        width: 320px;
-        height: 480px;
-        max-height: calc(100vh - 100px);
-      }
-
-      #chat-body {
-        padding: 8px;
-      }
-
-      #chat-body button {
-        padding: 9px 10px;
-        font-size: 13px;
-      }
-    }
-
-    /* Mobile Portrait (480px and below) */
     @media screen and (max-width: 480px) {
       #chatbot-container {
         width: calc(100vw - 20px);
-        max-width: 380px;
-        height: 460px;
+        max-width: 400px;
+        height: 500px;
         right: 10px;
         bottom: 75px;
-        border-radius: 12px;
+        border-radius: 16px;
       }
 
       #chatbot-button {
-        width: 56px;
-        height: 56px;
+        width: 60px;
+        height: 60px;
         right: 10px;
         bottom: 10px;
       }
 
-      #chatbot-button > div > div:first-child {
-        width: 50px;
-        height: 50px;
-      }
-
-      #chatbot-button img {
-        width: 44px !important;
-      }
-
       .bot-bubble,
       .user-bubble {
         font-size: 13px;
-        padding: 7px 10px;
-      }
-
-      #chat-input {
-        font-size: 13px;
-        padding: 9px 10px;
-      }
-
-      #chat-send {
-        padding: 9px 14px;
-        font-size: 13px;
-      }
-
-      #back-to-menu-btn {
-        width: 92%;
-        padding: 9px;
-        font-size: 13px;
-      }
-
-      #chat-footer {
-        font-size: 11px;
-        padding: 6px;
-      }
-
-      #chat-footer img {
-        height: 18px;
+        padding: 10px 14px;
       }
     }
 
-    /* Small Mobile (375px and below) */
     @media screen and (max-width: 375px) {
       #chatbot-container {
         width: calc(100vw - 16px);
-        height: 440px;
-        right: 8px;
-        bottom: 70px;
+        height: 480px;
       }
 
-      #chatbot-button {
-        width: 52px;
-        height: 52px;
-        right: 8px;
-        bottom: 8px;
-      }
-
-      #chatbot-button > div > div:first-child {
-        width: 46px;
-        height: 46px;
-      }
-
-      #chatbot-button img {
-        width: 40px !important;
-      }
-
-      #chat-body {
-        padding: 6px;
-        font-size: 12px;
-      }
-
-      .bot-bubble,
-      .user-bubble {
-        font-size: 12px;
-        padding: 6px 9px;
-      }
-
-      #chat-body button {
-        padding: 8px 9px;
-        font-size: 12px;
-      }
+      .welcome-icon { font-size: 50px; }
+      .welcome-title { font-size: 20px; }
     }
-
-    /* Extra Small Mobile (320px) */
-    @media screen and (max-width: 320px) {
-      #chatbot-container {
-        width: calc(100vw - 12px);
-        height: 420px;
-        right: 6px;
-        bottom: 65px;
-        border-radius: 10px;
-      }
-
-      #chatbot-button {
-        width: 48px;
-        height: 48px;
-        right: 6px;
-        bottom: 6px;
-      }
-
-      #chatbot-button > div > div:first-child {
-        width: 42px;
-        height: 42px;
-        border-width: 2px;
-      }
-
-      #chatbot-button img {
-        width: 36px !important;
-      }
-
-      .bot-bubble,
-      .user-bubble {
-        font-size: 11px;
-        padding: 6px 8px;
-        margin: 4px 0;
-      }
-
-      #chat-input {
-        font-size: 12px;
-        padding: 8px;
-      }
-
-      #chat-send {
-        padding: 8px 12px;
-        font-size: 12px;
-      }
-    }
-
-    /* ====================================
-       LANDSCAPE ORIENTATION ADJUSTMENTS
-       ==================================== */
-
-    @media screen and (max-height: 500px) and (orientation: landscape) {
-      #chatbot-container {
-        height: calc(100vh - 80px);
-        max-height: 380px;
-        bottom: 65px;
-      }
-
-      #chatbot-button {
-        width: 50px;
-        height: 50px;
-        bottom: 8px;
-      }
-
-      #chatbot-button > div > div:first-child {
-        width: 44px;
-        height: 44px;
-      }
-
-      #chat-body {
-        padding: 6px;
-      }
-    }
-
-    /* ====================================
-       FULL SCREEN MOBILE (iPhone notch, etc.)
-       ==================================== */
 
     @media screen and (max-width: 480px) {
       #chatbot-container {
@@ -529,57 +619,6 @@
       #chatbot-button {
         bottom: max(10px, env(safe-area-inset-bottom, 10px));
         right: max(10px, env(safe-area-inset-right, 10px));
-      }
-    }
-
-    /* ====================================
-       ACCESSIBILITY & UTILITY CLASSES
-       ==================================== */
-
-    #chat-input:focus,
-    #chat-body button:focus,
-    #back-to-menu-btn:focus,
-    #chat-send:focus {
-      outline: 2px solid currentColor;
-      outline-offset: 2px;
-    }
-
-    #chat-send:disabled,
-    #chat-body button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .loading {
-      opacity: 0.6;
-      pointer-events: none;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    #chatbot-container.show {
-      display: flex;
-      animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    @keyframes scaleIn {
-      from {
-        opacity: 0;
-        transform: scale(0.95) translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-      #chatbot-button,
-      #chatbot-container {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
       }
     }
 
@@ -618,23 +657,47 @@
   const BRAND_THEMES = {
     LIFESTYLE: {
       primary: "#F89F17",
-      gradient: "linear-gradient(135deg, #F89F17, #ffb84d)",
+      gradient: "linear-gradient(135deg, #F89F17 0%, #ffb84d 100%)",
       logo: "https://assets-cloud.landmarkshops.in/website_images/static-pages/brand_exp/brand2images/logos/prod/lifestyle-logo-136x46.svg",
+      welcomeIcon: "🛍️",
+      messages: [
+        "Discover amazing deals just for you! 🎉",
+        "Shop now and save up to 50% on selected items! 💰",
+        "New arrivals are waiting for you! ✨"
+      ]
     },
     MAX: {
       primary: "#303AB2",
-      gradient: "linear-gradient(135deg, #303AB2, #4A55E2)",
+      gradient: "linear-gradient(135deg, #303AB2 0%, #4A55E2 100%)",
       logo: "https://assets-cloud.landmarkshops.in/website_images/in/logos/logo-max.svg",
+      welcomeIcon: "👔",
+      messages: [
+        "Upgrade your wardrobe today! 👗",
+        "Fashion that fits your lifestyle! ✨",
+        "Exclusive styles just arrived! 🎁"
+      ]
     },
     BABYSHOP: {
       primary: "#819F83",
-      gradient: "linear-gradient(135deg, #819F83, #9FC19F)",
+      gradient: "linear-gradient(135deg, #819F83 0%, #9FC19F 100%)",
       logo: "https://assets-cloud.landmarkshops.in/website_images/in/logos/logo-babyshop.svg",
+      welcomeIcon: "👶",
+      messages: [
+        "Everything your little one needs! 🍼",
+        "Safe, soft, and adorable collections! 💝",
+        "New baby essentials just for you! 🌟"
+      ]
     },
     HOMECENTRE: {
       primary: "#7665A0",
-      gradient: "linear-gradient(135deg, #7665A0, #9988C4)",
+      gradient: "linear-gradient(135deg, #7665A0 0%, #9988C4 100%)",
       logo: "https://assets-cloud.landmarkshops.in/website_images/in/logos/new-logo-homecentre.svg",
+      welcomeIcon: "🏠",
+      messages: [
+        "Transform your space into a dream home! 🛋️",
+        "Stylish home decor at great prices! ✨",
+        "Make your house feel like home! 💫"
+      ]
     },
   };
 
@@ -651,7 +714,22 @@
     // --- Utility Functions ---
     const clearBody = () => (chatBody.innerHTML = "");
 
+    const showTypingIndicator = () => {
+      const typing = document.createElement("div");
+      typing.className = "typing-indicator";
+      typing.id = "typing-indicator";
+      typing.innerHTML = "<span></span><span></span><span></span>";
+      chatBody.appendChild(typing);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    };
+
+    const hideTypingIndicator = () => {
+      const typing = document.getElementById("typing-indicator");
+      if (typing) typing.remove();
+    };
+
     const renderBotMessage = (msg) => {
+      hideTypingIndicator();
       const bubble = document.createElement("div");
       bubble.className = "bubble bot-bubble";
       bubble.innerHTML = msg.replace(/\n/g, "<br/>");
@@ -668,7 +746,35 @@
       chatBody.scrollTop = chatBody.scrollHeight;
     };
 
-    // --- Back to Menu: always inserted above footer (bottom) ---
+    const renderPromoBanner = () => {
+      const randomMsg = theme.messages[Math.floor(Math.random() * theme.messages.length)];
+      const banner = document.createElement("div");
+      banner.className = "promo-banner";
+      banner.innerHTML = `
+        <span class="promo-icon">🎁</span>
+        ${randomMsg}
+      `;
+      banner.onclick = () => {
+        window.location.href = window.location.origin;
+      };
+      chatBody.appendChild(banner);
+    };
+
+    const renderWelcomeScreen = () => {
+      const welcome = document.createElement("div");
+      welcome.className = "welcome-screen";
+      welcome.innerHTML = `
+        <div class="welcome-icon">${theme.welcomeIcon}</div>
+        <div class="welcome-title">Welcome to ${config.concept}!</div>
+        <div class="welcome-subtitle">
+          I'm your personal shopping assistant. <br/>
+          How can I help you today?
+        </div>
+      `;
+      chatBody.appendChild(welcome);
+    };
+
+    // --- Back to Menu ---
     const renderBackToMenu = () => {
       const existing = document.getElementById("back-to-menu-btn");
       if (existing) existing.remove();
@@ -676,7 +782,7 @@
       const backBtn = document.createElement("button");
       backBtn.id = "back-to-menu-btn";
       backBtn.textContent = "⬅️ Back to Main Menu";
-      backBtn.style.border = `1px solid ${theme.primary}`;
+      backBtn.style.border = `2px solid ${theme.primary}`;
       backBtn.style.color = theme.primary;
 
       backBtn.onclick = () => showGreeting();
@@ -691,11 +797,16 @@
 
     // --- API Helpers ---
     async function fetchMenus() {
+      showTypingIndicator();
       const res = await fetch(`${config.backend}/menus`);
+      hideTypingIndicator();
       return res.json();
     }
+    
     async function fetchSubMenus(menuId) {
+      showTypingIndicator();
       const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
+      hideTypingIndicator();
       return res.json();
     }
 
@@ -723,7 +834,7 @@
       if (payload.chat_message && payload.chat_message.trim() !== "") {
         renderBotMessage(payload.chat_message);
       } else {
-        renderBotMessage("<b>🧾 Customer Details:</b>");
+        renderBotMessage("<b>🧾 Your Orders</b>");
         chatBody.innerHTML += `
           <div class="bubble bot-bubble">
             <b>Name:</b> ${payload.customerName || "N/A"}<br/>
@@ -742,7 +853,7 @@
     }
 
     function handleCustomerProfile(payload) {
-      if (checkAndTriggerLogin(payload, "Please login to check your order details.")) return;
+      if (checkAndTriggerLogin(payload, "Please login to check your profile details.")) return;
 
       const profile = payload.customerProfile;
 
@@ -757,7 +868,7 @@
       if (chatMsg.trim() !== "") {
         renderBotMessage(chatMsg);
       } else {
-        renderBotMessage("<b>🧾 Customer Details:</b>");
+        renderBotMessage("<b>👤 Your Profile</b>");
 
         chatBody.innerHTML += `
           <div class="bubble bot-bubble">
@@ -792,7 +903,7 @@
         renderBotMessage(`
           ${cht || defaultMsg}
           <br><br>
-          <a href="#" id="chat-login-link" style="color:#007bff; text-decoration:underline; cursor:pointer;">
+          <a href="#" id="chat-login-link" style="color:#3b82f6; text-decoration:none; font-weight:600; border-bottom:2px solid #3b82f6;">
             🔐 Click here to Login
           </a>
         `);
@@ -847,7 +958,7 @@
         toast.textContent = "✅ Order number copied!";
         toast.style.display = "block";
         clearTimeout(toast._t);
-        toast._t = setTimeout(() => (toast.style.display = "none"), 1600);
+        toast._t = setTimeout(() => (toast.style.display = "none"), 2000);
       } catch {
         alert("Copy failed. Please copy manually.");
       }
@@ -860,36 +971,41 @@
         o.orderNo && o.orderNo.startsWith("http")
           ? o.orderNo
           : `${window.location.origin}/my-account/order/${orderNumber}`;
-      const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
-      const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
+      const returnMsg = o.returnAllow ? "✅ Return" : "🚫 No Return";
+      const exchangeMsg = o.exchangeAllow ? "♻️ Exchange" : "🚫 No Exchange";
       const statusBadge = o.latestStatus
-        ? `<span style="display:inline-block;padding:4px 8px;font-weight:600;font-size:12px;color:white;background:${theme.primary};margin-left:6px;border-radius:4px;">${o.latestStatus}</span>`
+        ? `<span style="display:inline-block;padding:6px 12px;font-weight:700;font-size:11px;color:white;background:${theme.gradient};margin-left:6px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;">${o.latestStatus}</span>`
         : "";
       return `
-        <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:12px;border-radius:12px;margin-top:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
-          <div style="display:flex;gap:12px;align-items:flex-start;">
-            <img src="${o.imageURL || "https://via.placeholder.com/80"}" style="width:84px;height:84px;border-radius:8px;object-fit:cover;border:1px solid #eee;">
+        <div class="order-card" style="border-color: ${theme.primary}20;">
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <img src="${o.imageURL || "https://via.placeholder.com/80"}" style="width:90px;height:90px;border-radius:12px;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
             <div style="flex:1;">
-              <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div style="font-weight:700;color:#222;font-size:14px;">${o.productName || "Product"}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="font-weight:700;color:#1f2937;font-size:15px;">${o.productName || "Product"}</div>
                 ${statusBadge}
               </div>
-              <div style="font-size:13px;color:#555;margin-top:6px;">${o.color || ""}${o.size ? " | " + o.size : ""}</div>
-              <div style="margin-top:8px;font-size:13px;color:#444;">
-                <strong>Qty:</strong> ${o.qty || 1} | <strong>Net:</strong> ${o.netAmount || "-"}
+              <div style="font-size:13px;color:#6b7280;margin-bottom:10px;">${o.color || ""}${o.size ? " | Size: " + o.size : ""}</div>
+              <div style="display:flex;gap:16px;margin-bottom:12px;font-size:13px;">
+                <span style="color:#374151;"><b>Qty:</b> ${o.qty || 1}</span>
+                <span style="color:#374151;"><b>Amount:</b> ₹${o.netAmount || o.orderAmount || "-"}</span>
               </div>
-              <div style="margin-top:10px;">
-                <div style="font-size:13px;margin-bottom:4px;"><b>Order No:</b> <span style="font-weight:600;color:#111;">${orderNumber}</span></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
-                  <a href="${orderUrl}" target="_blank" style="text-decoration:none;">
-                    <button style="background:${theme.primary};color:#fff;padding:6px 10px;border:none;border-radius:8px;cursor:pointer;font-size:13px;">View Order</button>
-                  </a>
-                  <button onclick="copyToClipboard('${orderNumber}')" style="background:#fff;border:1px solid ${theme.primary};color:${theme.primary};padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px;">Copy Order #</button>
-                </div>
+              <div style="background:#f9fafb;padding:10px;border-radius:8px;margin-bottom:12px;">
+                <div style="font-size:12px;color:#6b7280;margin-bottom:4px;">Order Number</div>
+                <div style="font-weight:700;color:#111827;font-size:14px;">${orderNumber}</div>
               </div>
-              ${o.orderAmount ? `<div style="font-size:13px;color:#666;margin-top:8px;"><strong>Amount:</strong> ₹${o.orderAmount}</div>` : ""}
-              ${o.estmtDate ? `<div style="font-size:13px;color:#666;margin-top:4px;"><strong>ETA:</strong> ${o.estmtDate}</div>` : ""}
-              <div style="font-size:13px;margin-top:8px;">${returnMsg} | ${exchangeMsg}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <a href="${orderUrl}" target="_blank" style="text-decoration:none;">
+                  <button style="background:${theme.gradient};color:#fff;padding:8px 16px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 2px 8px ${theme.primary}40;">📦 View Order</button>
+                </a>
+                <button onclick="copyToClipboard('${orderNumber}')" style="background:#fff;border:2px solid ${theme.primary};color:${theme.primary};padding:8px 16px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;">📋 Copy #</button>
+              </div>
+              ${o.estmtDate ? `<div style="font-size:12px;color:#6b7280;margin-bottom:8px;"><b>📅 Estimated Delivery:</b> ${o.estmtDate}</div>` : ""}
+              <div style="display:flex;gap:12px;font-size:12px;color:#6b7280;">
+                <span>${returnMsg}</span>
+                <span>•</span>
+                <span>${exchangeMsg}</span>
+              </div>
             </div>
           </div>
         </div>`;
@@ -898,6 +1014,7 @@
     // --- Send Message ---
     async function sendMessage(type, userMessage) {
       const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
+      showTypingIndicator();
       try {
         const body = {
           message: userMessage,
@@ -919,29 +1036,48 @@
         const handler = INTENT_HANDLERS[intent] || INTENT_HANDLERS.DEFAULT;
         handler(payload);
       } catch (e) {
+        hideTypingIndicator();
         console.error("❌ Chatbot error:", e);
         renderBotMessage("⚠️ Something went wrong. Please try again.");
         renderBackToMenu();
       }
     }
 
-    // --- Menus, Submenus, etc. ---
+    // --- Menus, Submenus ---
     async function showGreeting() {
       clearBody();
       inputContainer.style.display = "none";
-      renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`);
-      renderBotMessage("Please choose an option below 👇");
+      renderWelcomeScreen();
+      renderBotMessage(`Hi there! 👋 I'm here to help you with:`);
+      renderPromoBanner();
       const menus = await fetchMenus();
       menus.forEach((menu) => renderMenuButton(menu));
       renderBackToMenu();
     }
 
     const renderMenuButton = (menu) => {
+      const icons = {
+        'Order': '📦',
+        'Profile': '👤',
+        'Policy': '📋',
+        'Store': '🏪',
+        'Help': '💬',
+        'Track': '🔍'
+      };
+      
+      let icon = '•';
+      for (let key in icons) {
+        if (menu.title.toLowerCase().includes(key.toLowerCase())) {
+          icon = icons[key];
+          break;
+        }
+      }
+
       const btn = document.createElement("button");
-      btn.textContent = menu.title;
-      btn.style.border = `1px solid ${theme.primary}`;
-      btn.style.background = "#fff";
-      btn.style.color = theme.primary;
+      btn.innerHTML = `<span style="margin-right:8px;">${icon}</span>${menu.title}`;
+      btn.style.border = `2px solid ${theme.primary}30`;
+      btn.style.background = "white";
+      btn.style.color = "#374151";
       btn.onclick = () => showSubMenus(menu);
       chatBody.appendChild(btn);
     };
@@ -949,10 +1085,10 @@
     async function showSubMenus(menu) {
       clearBody();
       renderUserMessage(menu.title);
-      renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
+      renderBotMessage(`Great choice! Let me show you the options for <b>${menu.title}</b>...`);
       const subs = await fetchSubMenus(menu.id);
       if (!subs?.length) {
-        renderBotMessage("No sub-options found.");
+        renderBotMessage("No sub-options found at the moment. 😔");
         renderBackToMenu();
         return;
       }
@@ -963,8 +1099,8 @@
     const renderSubmenuButton = (sub) => {
       const sbtn = document.createElement("button");
       sbtn.textContent = sub.title;
-      sbtn.style.border = `1px solid ${theme.primary}`;
-      sbtn.style.background = sub.type === "dynamic" ? "#EEF2FF" : "#fff";
+      sbtn.style.border = `2px solid ${theme.primary}`;
+      sbtn.style.background = sub.type === "dynamic" ? `${theme.primary}15` : "white";
       sbtn.style.color = theme.primary;
       sbtn.onclick = () => handleSubmenu(sub);
       chatBody.appendChild(sbtn);
@@ -978,7 +1114,7 @@
         renderBackToMenu();
         return;
       }
-      renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
+      renderBotMessage(`Perfect! 👍 Please type your question about <b>${sub.title}</b> below.`);
       inputContainer.style.display = "flex";
       sendButton.onclick = () => {
         const msg = inputField.value.trim();
@@ -991,16 +1127,18 @@
     }
 
     async function handleNearbyStore() {
-      renderBotMessage("📍 Detecting your location...");
+      renderBotMessage("📍 Let me find stores near you...");
       if (!navigator.geolocation) {
-        renderBotMessage("⚠️ Geolocation not supported.");
+        renderBotMessage("⚠️ Geolocation is not supported by your browser.");
         return;
       }
+      showTypingIndicator();
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude: lat, longitude: lon } = pos.coords;
-          renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
-          renderBotMessage("Fetching nearby stores...");
+          hideTypingIndicator();
+          renderBotMessage(`✅ Location detected! Searching nearby stores...`);
+          showTypingIndicator();
           try {
             const res = await fetch(`${config.backend}/chat/nearby-stores`, {
               method: "POST",
@@ -1014,27 +1152,39 @@
               }),
             });
             const json = await res.json();
+            hideTypingIndicator();
             if (json?.data?.stores?.length) {
+              renderBotMessage(`🎉 Found <b>${json.data.stores.length}</b> store(s) near you!`);
               json.data.stores.forEach((s) => {
                 chatBody.innerHTML += `
-                  <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
-                    <b>${s.storeName}</b><br/>
-                    ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
-                    ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
-                    ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
+                  <div class="order-card">
+                    <div style="margin-bottom:8px;">
+                      <div style="font-weight:700;font-size:16px;color:#1f2937;margin-bottom:4px;">🏪 ${s.storeName}</div>
+                      <div style="font-size:13px;color:#6b7280;line-height:1.6;">
+                        📍 ${s.line1 || ""} ${s.line2 ? ", " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}
+                      </div>
+                    </div>
+                    ${s.contactNumber ? `<div style="font-size:13px;color:#374151;margin:6px 0;"><b>📞 Contact:</b> ${s.contactNumber}</div>` : ""}
+                    ${s.workingHours ? `<div style="font-size:13px;color:#374151;margin:6px 0;"><b>🕒 Hours:</b> ${s.workingHours}</div>` : ""}
                     <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
-                       style="color:${theme.primary};font-weight:600;">📍 View on Map</a>
+                       style="display:inline-block;margin-top:10px;padding:8px 16px;background:${theme.gradient};color:white;text-decoration:none;border-radius:10px;font-weight:600;font-size:13px;box-shadow:0 2px 8px ${theme.primary}40;">
+                      📍 Get Directions
+                    </a>
                   </div>`;
               });
-            } else renderBotMessage("😔 No nearby stores found.");
+            } else {
+              renderBotMessage("😔 No nearby stores found. Try searching in a different area.");
+            }
             renderBackToMenu();
           } catch {
-            renderBotMessage("⚠️ Error fetching store list.");
+            hideTypingIndicator();
+            renderBotMessage("⚠️ Error fetching store list. Please try again.");
             renderBackToMenu();
           }
         },
         () => {
-          renderBotMessage("❌ Permission denied for location.");
+          hideTypingIndicator();
+          renderBotMessage("❌ Location permission denied. Please enable location access to find nearby stores.");
           renderBackToMenu();
         }
       );
@@ -1050,14 +1200,19 @@
     button.id = "chatbot-button";
     button.innerHTML = `
       <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        <div style="background:white;border:4px solid ${theme.primary};border-radius:50%;width:67px;height:67px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,0.2);">
           <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
         </div>
-        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
+        <div style="position:absolute;bottom:-2px;right:-2px;background:${theme.gradient};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,0.3);">💬</div>
       </div>`;
     button.onclick = () => {
-      chatWindow.style.display = chatWindow.style.display === "flex" ? "none" : "flex";
-      if (chatWindow.style.display === "flex") showGreeting();
+      if (chatWindow.style.display === "flex") {
+        chatWindow.style.display = "none";
+      } else {
+        chatWindow.style.display = "flex";
+        chatWindow.classList.add("show");
+        showGreeting();
+      }
     };
     document.body.appendChild(button);
   }
@@ -1065,31 +1220,33 @@
   function createChatWindow() {
     const chatWindow = document.createElement("div");
     chatWindow.id = "chatbot-container";
-    chatWindow.style.border = `2px solid ${theme.primary}`;
+    chatWindow.style.border = `2px solid ${theme.primary}40`;
 
     const isDarkHeader = ["MAX", "LIFESTYLE", "HOMECENTRE"].includes(config.concept);
     const logoFilter = isDarkHeader ? "filter: brightness(0) invert(1);" : "";
 
     chatWindow.innerHTML = `
       <div class="chatbot-header" style="background:${theme.gradient};">
-        <span style="display:flex;align-items:center;gap:8px;">
-          <img src="${theme.logo}" style="height:22px;${logoFilter}" alt="${config.concept} logo">
-          <span>Chat Service</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <img src="${theme.logo}" style="height:24px;${logoFilter}" alt="${config.concept} logo">
+          <span style="font-size:16px;">Chat Assistant</span>
         </span>
         <span id="close-chat">✖</span>
       </div>
       <div id="chat-body"></div>
       <div id="chat-input-container" style="display:none;">
-        <input id="chat-input" placeholder="Type your message...">
+        <input id="chat-input" placeholder="Type your message here...">
         <button id="chat-send" style="background:${theme.gradient};">Send</button>
       </div>
       <div id="chat-footer">
-        Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
+        Powered by <img src="${theme.logo}">
       </div>`;
 
     document.body.appendChild(chatWindow);
 
-    chatWindow.querySelector("#close-chat").onclick = () => (chatWindow.style.display = "none");
+    chatWindow.querySelector("#close-chat").onclick = () => {
+      chatWindow.style.display = "none";
+    };
     return chatWindow;
   }
 
