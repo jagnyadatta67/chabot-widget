@@ -182,14 +182,15 @@
           renderBotMessage(payload.chat_message || "No information found.");
         } else if (intent === "ORDER_TRACKING") {
 
-          // 🧠 Case 1: If chat_message is present (backend info or error message)
+          // 🧠 Case 1: If chat_message exists (info/error from backend)
           if (payload.chat_message && payload.chat_message.trim() !== "") {
             renderBotMessage(payload.chat_message);
           } 
-          // 🧾 Case 2: Otherwise, show order details
+        
+          // 🧾 Case 2: Display detailed order info
           else {
             renderBotMessage("<b>🧾 Customer Details:</b>");
-        
+            
             chatBody.innerHTML += `
               <div class="bubble bot-bubble">
                 <b>Name:</b> ${payload.customerName || "N/A"}<br/>
@@ -198,12 +199,55 @@
         
             if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
               payload.orderDetailsList.forEach((o) => {
+                
+                const backendBase = (typeof config !== "undefined" && config.backend) 
+                  ? config.backend 
+                  : window.location.origin;
+                  
+                const productLink = o.productURL 
+                  ? `${backendBase}${o.productURL}` 
+                  : "#";
+        
+                // Handle boolean flags (returns/exchange)
+                const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
+                const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
+        
                 chatBody.innerHTML += `
-                  <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;">
-                    <b>${o.productName}</b><br/>
-                    ${o.color || ""} ${o.size || ""}<br/>
-                    Qty: ${o.qty || 1} | ₹${o.netAmount}<br/>
-                    <small>Status: ${o.orderStatus}</small>
+                  <div class="bubble bot-bubble" 
+                       style="background:#fff;border:1px solid ${theme.primary};padding:10px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.05);margin-top:6px;">
+                    
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <img src="${o.imageURL || 'https://via.placeholder.com/80'}" 
+                           alt="${o.productName || 'Product'}"
+                           style="width:80px;height:80px;border-radius:6px;object-fit:cover;">
+                      <div>
+                        <a href="${productLink}" target="_blank" 
+                           style="color:${theme.primary};text-decoration:none;font-weight:600;">
+                           ${o.productName || "Product"}
+                        </a><br/>
+                        <span style="font-size:13px;color:#555;">
+                          ${o.color ? `Color: ${o.color}` : ""}
+                          ${o.size ? ` | Size: ${o.size}` : ""}
+                        </span><br/>
+                        <span style="font-size:13px;color:#555;">
+                          Qty: ${o.qty || 1} | <b>${o.netAmount || ""}</b>
+                        </span>
+                      </div>
+                    </div>
+        
+                    <hr style="border:none;border-top:1px dashed #ddd;margin:8px 0;">
+        
+                    <div style="font-size:13px;line-height:1.4;color:#444;">
+                      <b>Order No:</b> ${o.orderNo || "N/A"}<br/>
+                      ${o.orderAmount ? `<b>Order Amount:</b> ₹${o.orderAmount}<br/>` : ""}
+                      ${o.estmtDate ? `<b>Estimated Delivery:</b> ${o.estmtDate}<br/>` : ""}
+                      ${o.latestStatus ? `<b>Latest Status:</b> <span style="color:${theme.primary};font-weight:500;">${o.latestStatus}</span><br/>` : ""}
+                      ${o.tat ? `<b>TAT:</b> ${o.tat}<br/>` : ""}
+                    </div>
+        
+                    <div style="font-size:13px;margin-top:6px;">
+                      ${returnMsg} &nbsp;|&nbsp; ${exchangeMsg}
+                    </div>
                   </div>`;
               });
             } else {
@@ -211,6 +255,7 @@
             }
           }
         }
+        
         
       } catch (e) {
         renderBotMessage("⚠️ Something went wrong. Please try again.");
