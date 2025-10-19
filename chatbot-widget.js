@@ -142,7 +142,7 @@
     };
     function renderBackToMenu() {
       const backBtn = document.createElement("button");
-      backBtn.textContent = "⬅️ Back to Menu";
+      backBtn.textContent = "⬅️ Back to Main Menu";
       Object.assign(backBtn.style, {
         width: "100%",
         margin: "10px 0",
@@ -195,7 +195,7 @@
         const payload = json.data || json;
 
         if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
-          renderBotMessage(payload.chat_message || "No information found.");
+          renderBotMessage(payload.chat_message || payload.data || "No information found.");
           renderBackToMenu();
         }
 
@@ -258,6 +258,10 @@
     // --- Handle Submenus ---
     async function handleSubmenu(sub) {
       renderUserMessage(sub.title);
+      clearTimeout();
+
+      // ✅ Always show back to menu immediately
+      renderBackToMenu();
 
       // ✅ Handle “Near By Store”
       if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
@@ -375,6 +379,7 @@
         sbtn.onclick = () => handleSubmenu(sub);
         chatBody.appendChild(sbtn);
       });
+      renderBackToMenu(); // ✅ show back to main menu also at submenu list
     }
 
     // --- Toggle ---
