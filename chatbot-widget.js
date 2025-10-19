@@ -82,9 +82,10 @@
     };
 
     const renderBackToMenu = () => {
+      // Remove any existing button
       const existing = document.getElementById("back-to-menu-btn");
       if (existing) existing.remove();
-
+    
       const backBtn = document.createElement("button");
       backBtn.id = "back-to-menu-btn";
       backBtn.textContent = "⬅️ Back to Main Menu";
@@ -99,9 +100,19 @@
         cursor: "pointer",
         fontWeight: "600",
       });
+    
       backBtn.onclick = () => showGreeting();
-      chatBody.prepend(backBtn);
+    
+      // 🔹 Insert before the footer instead of top
+      const footer = chatWindow.querySelector("div[style*='Powered by']");
+      if (footer) {
+        chatWindow.insertBefore(backBtn, footer);
+      } else {
+        // fallback in case footer not found
+        chatBody.appendChild(backBtn);
+      }
     };
+    
 
     // --- API Helpers ---
     async function fetchMenus() {
