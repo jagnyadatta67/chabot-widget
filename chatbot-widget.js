@@ -428,15 +428,7 @@
     button.innerHTML = `
       <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
         <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-         <span style="display:flex;align-items:center;gap:6px;">
-  <img 
-    src="${theme.logo}" 
-    style="height:22px;filter: brightness(0) invert(1);" 
-    alt="${config.concept} logo"
-  />
-  <span style="font-weight:600;">Chat Service</span>
-</span>
-
+          <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
         </div>
         <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};Color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
       </div>`;
@@ -479,10 +471,17 @@
       border: 2px solid ${theme.primary};
       z-index: 9999;
     `;
-
+  
+    // Apply white logo filter only for darker themes (Max, Lifestyle, Homecentre)
+    const isDarkHeader = ["MAX", "LIFESTYLE", "HOMECENTRE"].includes(config.concept);
+    const logoFilter = isDarkHeader ? "filter: brightness(0) invert(1);" : "";
+  
     chatWindow.innerHTML = `
       <div style="background:${theme.gradient};color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:600;">
-        <span><img src="${theme.logo}" style="height:20px;margin-right:6px;"> Chat Service</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <img src="${theme.logo}" style="height:22px;${logoFilter}" alt="${config.concept} logo">
+          <span>Chat Service</span>
+        </span>
         <span id="close-chat" style="cursor:pointer;">✖</span>
       </div>
       <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;font-size:14px;"></div>
@@ -493,11 +492,13 @@
       <div id="chat-footer" style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
         Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
       </div>`;
+  
     document.body.appendChild(chatWindow);
-
+  
     chatWindow.querySelector("#close-chat").onclick = () => (chatWindow.style.display = "none");
     return chatWindow;
   }
+  
 
   // --- Initialize ---
   if (document.readyState === "loading") {
