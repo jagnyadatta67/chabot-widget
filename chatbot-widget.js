@@ -341,9 +341,16 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
       const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
       const statusBadge = o.latestStatus
-        ? `<span style="display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid ${theme.primary};font-weight:600;font-size:12px;color:${theme.primary};margin-left:6px;">${o.latestStatus}</span>`
-        : "";
-
+  ? `<span style="
+      display:inline-block;
+      padding:4px 8px;
+      font-weight:600;
+      font-size:12px;
+      color:white;
+      background:${theme.primary};
+      margin-left:6px;
+      border-radius:4px;">${o.latestStatus}</span>`
+  : "";
       return `
         <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:12px;border-radius:12px;margin-top:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
           <div style="display:flex;gap:12px;align-items:flex-start;">
