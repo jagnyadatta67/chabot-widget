@@ -53,8 +53,297 @@
 
   function initChatWidget() {
     let lastIntent = "";
+    const chatWindow = createChatWindow();
+    const chatBody = chatWindow.querySelector("#chat-body");
+    const inputContainer = chatWindow.querySelector("#chat-input-container");
+    const inputField = chatWindow.querySelector("#chat-input");
+    const sendButton = chatWindow.querySelector("#chat-send");
 
-    // --- Floating Button ---
+    // --- Utility Functions ---
+    const clearBody = () => (chatBody.innerHTML = "");
+
+    const renderBotMessage = (msg) => {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble bot-bubble";
+      bubble.style =
+        "background:#f3f4f6;border-radius:12px;padding:8px 12px;margin:6px 0;max-width:88%;";
+      bubble.innerHTML = msg.replace(/\n/g, "<br/>");
+      chatBody.appendChild(bubble);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    };
+
+    const renderUserMessage = (msg) => {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble user-bubble";
+      bubble.style = `background:${theme.gradient};color:white;border-radius:12px;padding:8px 12px;margin:6px 0;align-self:flex-end;max-width:88%;`;
+      bubble.innerHTML = msg;
+      chatBody.appendChild(bubble);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    };
+
+    const renderBackToMenu = () => {
+      const existing = document.getElementById("back-to-menu-btn");
+      if (existing) existing.remove();
+
+      const backBtn = document.createElement("button");
+      backBtn.id = "back-to-menu-btn";
+      backBtn.textContent = "⬅️ Back to Main Menu";
+      Object.assign(backBtn.style, {
+        width: "100%",
+        margin: "10px 0",
+        padding: "10px",
+        border: `1px solid ${theme.primary}`,
+        borderRadius: "10px",
+        background: "#fff",
+        color: theme.primary,
+        cursor: "pointer",
+        fontWeight: "600",
+      });
+      backBtn.onclick = () => showGreeting();
+      chatBody.prepend(backBtn);
+    };
+
+    // --- API Helpers ---
+    async function fetchMenus() {
+      const res = await fetch(`${config.backend}/menus`);
+      return res.json();
+    }
+    async function fetchSubMenus(menuId) {
+      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
+      return res.json();
+    }
+
+    // --- Intent Handlers ---
+    const INTENT_HANDLERS = {
+      POLICY_QUESTION: handleGeneralIntent,
+      GENERAL_QUERY: handleGeneralIntent,
+      ORDER_TRACKING: handleOrderTracking,
+      DEFAULT: handleDefaultIntent,
+    };
+
+    function handleGeneralIntent(payload) {
+      renderBotMessage(payload.chat_message || "No information found.");
+      renderBackToMenu();
+    }
+
+    function handleDefaultIntent(payload) {
+      renderBotMessage(payload.chat_message || payload.data || "No response available.");
+      renderBackToMenu();
+    }
+
+    function handleOrderTracking(payload) {
+      if (payload.chat_message && payload.chat_message.trim() !== "") {
+        renderBotMessage(payload.chat_message);
+      } else {
+        renderBotMessage("<b>🧾 Customer Details:</b>");
+        chatBody.innerHTML += `
+          <div class="bubble bot-bubble">
+            <b>Name:</b> ${payload.customerName || "N/A"}<br/>
+            <b>Mobile:</b> ${payload.mobileNo || "N/A"}
+          </div>`;
+
+        if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
+          payload.orderDetailsList.forEach((o) => {
+            chatBody.innerHTML += renderOrderCard(o);
+          });
+        } else {
+          renderBotMessage("No recent orders found.");
+        }
+      }
+      renderBackToMenu();
+    }
+
+    const renderOrderCard = (o) => {
+      const backendBase = config.backend || window.location.origin;
+      const productLink = o.productURL ? `${backendBase}${o.productURL}` : "#";
+      const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
+      const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
+
+      return `
+        <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;border-radius:10px;margin-top:6px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="${o.imageURL || "https://via.placeholder.com/80"}" style="width:80px;height:80px;border-radius:6px;object-fit:cover;">
+            <div>
+              <a href="${productLink}" target="_blank" style="color:${theme.primary};font-weight:600;">${o.productName || "Product"}</a><br/>
+              <span style="font-size:13px;color:#555;">${o.color || ""} ${o.size ? " | " + o.size : ""}</span><br/>
+              <span style="font-size:13px;color:#555;">Qty: ${o.qty || 1} | <b>${o.netAmount || ""}</b></span>
+            </div>
+          </div>
+          <hr style="border:none;border-top:1px dashed #ddd;margin:8px 0;">
+          <div style="font-size:13px;color:#444;">
+            <b>Order No:</b> ${o.orderNo}<br/>
+            ${o.orderAmount ? `<b>Order Amount:</b> ₹${o.orderAmount}<br/>` : ""}
+            ${o.estmtDate ? `<b>Estimated Delivery:</b> ${o.estmtDate}<br/>` : ""}
+            ${
+              o.latestStatus
+                ? `<b>Latest Status:</b> <span style="color:${theme.primary};">${o.latestStatus}</span><br/>`
+                : ""
+            }
+          </div>
+          <div style="font-size:13px;margin-top:6px;">${returnMsg} | ${exchangeMsg}</div>
+        </div>`;
+    };
+
+    // --- Core Send Logic ---
+    async function sendMessage(type, userMessage) {
+      const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
+      try {
+        const body = {
+          message: userMessage,
+          question: userMessage,
+          userId: config.userid,
+          concept: config.concept,
+          env: config.env,
+        };
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const json = await res.json();
+        console.log("🧠 Chatbot Response:", json);
+
+        const intent = json.intent || json.data?.intent || "DEFAULT";
+        let payload = typeof json.data === "string" ? { chat_message: json.data } : json.data || json;
+
+        const handler = INTENT_HANDLERS[intent] || INTENT_HANDLERS.DEFAULT;
+        handler(payload);
+      } catch (e) {
+        console.error("❌ Chatbot error:", e);
+        renderBotMessage("⚠️ Something went wrong. Please try again.");
+        renderBackToMenu();
+      }
+    }
+
+    // --- Menu Navigation ---
+    async function showGreeting() {
+      clearBody();
+      inputContainer.style.display = "none";
+      renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`);
+      renderBotMessage("Please choose an option below 👇");
+      const menus = await fetchMenus();
+      menus.forEach((menu) => renderMenuButton(menu));
+    }
+
+    const renderMenuButton = (menu) => {
+      const btn = document.createElement("button");
+      btn.textContent = menu.title;
+      Object.assign(btn.style, {
+        width: "100%",
+        margin: "6px 0",
+        padding: "10px",
+        border: `1px solid ${theme.primary}`,
+        borderRadius: "10px",
+        background: "#fff",
+        color: theme.primary,
+        cursor: "pointer",
+      });
+      btn.onclick = () => showSubMenus(menu);
+      chatBody.appendChild(btn);
+    };
+
+    async function showSubMenus(menu) {
+      clearBody();
+      renderBackToMenu();
+      renderUserMessage(menu.title);
+      renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
+      const subs = await fetchSubMenus(menu.id);
+      if (!subs?.length) return renderBotMessage("No sub-options found.");
+      subs.forEach((sub) => renderSubmenuButton(sub));
+    }
+
+    const renderSubmenuButton = (sub) => {
+      const sbtn = document.createElement("button");
+      sbtn.textContent = sub.title;
+      Object.assign(sbtn.style, {
+        width: "100%",
+        margin: "6px 0",
+        padding: "10px",
+        border: `1px solid ${theme.primary}`,
+        borderRadius: "10px",
+        background: sub.type === "dynamic" ? "#EEF2FF" : "#fff",
+        color: theme.primary,
+        cursor: "pointer",
+      });
+      sbtn.onclick = () => handleSubmenu(sub);
+      chatBody.appendChild(sbtn);
+    };
+
+    // --- Submenu Interaction ---
+    async function handleSubmenu(sub) {
+      clearBody();
+      renderBackToMenu();
+      renderUserMessage(sub.title);
+
+      if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
+        return handleNearbyStore();
+      }
+
+      renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
+      inputContainer.style.display = "flex";
+      sendButton.onclick = () => {
+        const msg = inputField.value.trim();
+        if (!msg) return;
+        renderUserMessage(msg);
+        sendMessage(sub.type, msg);
+        inputField.value = "";
+      };
+    }
+
+    // --- Nearby Store ---
+    async function handleNearbyStore() {
+      renderBotMessage("📍 Detecting your location...");
+      if (!navigator.geolocation) return renderBotMessage("⚠️ Geolocation not supported.");
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+          renderBotMessage("Fetching nearby stores...");
+          try {
+            const res = await fetch(`${config.backend}/chat/nearby-stores`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                latitude: lat,
+                longitude: lon,
+                concept: config.concept,
+                env: config.env,
+                userId: config.userid,
+              }),
+            });
+            const json = await res.json();
+            if (json?.data?.stores?.length) {
+              json.data.stores.forEach((s) => {
+                chatBody.innerHTML += `
+                  <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
+                    <b>${s.storeName}</b><br/>
+                    ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
+                    ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
+                    ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
+                    <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
+                       style="color:${theme.primary};font-weight:600;">📍 View on Map</a>
+                  </div>`;
+              });
+            } else renderBotMessage("😔 No nearby stores found.");
+          } catch {
+            renderBotMessage("⚠️ Error fetching store list.");
+          }
+        },
+        () => renderBotMessage("❌ Permission denied for location.")
+      );
+    }
+
+    // --- UI Initialization ---
+    createFloatingButton(chatWindow, showGreeting);
+  }
+
+  // --- Helpers: UI Initialization ---
+  function createFloatingButton(chatWindow, showGreeting) {
     const button = document.createElement("div");
     button.id = "chatbot-button";
     button.innerHTML = `
@@ -77,9 +366,14 @@
     });
     button.onmouseenter = () => (button.style.transform = "scale(1.1)");
     button.onmouseleave = () => (button.style.transform = "scale(1)");
+    button.onclick = () => {
+      chatWindow.style.display = chatWindow.style.display === "flex" ? "none" : "flex";
+      if (chatWindow.style.display === "flex") showGreeting();
+    };
     document.body.appendChild(button);
+  }
 
-    // --- Chat Window ---
+  function createChatWindow() {
     const chatWindow = document.createElement("div");
     chatWindow.id = "chatbot-container";
     chatWindow.style.cssText = `
@@ -111,306 +405,14 @@
       </div>
       <div style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
         Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
-      </div>
-    `;
+      </div>`;
     document.body.appendChild(chatWindow);
 
-    const chatBody = chatWindow.querySelector("#chat-body");
-    const inputContainer = chatWindow.querySelector("#chat-input-container");
-    const inputField = chatWindow.querySelector("#chat-input");
-    const sendButton = chatWindow.querySelector("#chat-send");
-    const closeBtn = chatWindow.querySelector("#close-chat");
-    closeBtn.onclick = () => (chatWindow.style.display = "none");
-
-    // --- Utilities ---
-    const clearBody = () => (chatBody.innerHTML = "");
-    const renderBotMessage = (msg) => {
-      const bubble = document.createElement("div");
-      bubble.className = "bubble bot-bubble";
-      bubble.style = `background:#f3f4f6;border-radius:12px;padding:8px 12px;margin:6px 0;max-width:88%;`;
-      bubble.innerHTML = msg.replace(/\n/g, "<br/>");
-      chatBody.appendChild(bubble);
-      chatBody.scrollTop = chatBody.scrollHeight;
-    };
-    const renderUserMessage = (msg) => {
-      const bubble = document.createElement("div");
-      bubble.className = "bubble user-bubble";
-      bubble.style = `background:${theme.gradient};color:white;border-radius:12px;padding:8px 12px;margin:6px 0;align-self:flex-end;max-width:88%;`;
-      bubble.innerHTML = msg;
-      chatBody.appendChild(bubble);
-      chatBody.scrollTop = chatBody.scrollHeight;
-    };
-
-    function renderBackToMenu() {
-      const existing = document.getElementById("back-to-menu-btn");
-      if (existing) existing.remove(); // remove previous duplicate button
-
-      const backBtn = document.createElement("button");
-      backBtn.id = "back-to-menu-btn";
-      backBtn.innerHTML = "⬅️ Back to Main Menu";
-      Object.assign(backBtn.style, {
-        width: "100%",
-        margin: "10px 0",
-        padding: "10px",
-        border: `1px solid ${theme.primary}`,
-        borderRadius: "10px",
-        background: "#fff",
-        color: theme.primary,
-        cursor: "pointer",
-        fontWeight: "600",
-        transition: "all 0.2s ease-in-out",
-      });
-      backBtn.onmouseenter = () => (backBtn.style.background = "#fafafa");
-      backBtn.onmouseleave = () => (backBtn.style.background = "#fff");
-      backBtn.onclick = () => showGreeting();
-      chatBody.prepend(backBtn); // always at top
-    }
-
-    // --- API ---
-    async function fetchMenus() {
-      const res = await fetch(`${config.backend}/menus`);
-      return await res.json();
-    }
-    async function fetchSubMenus(menuId) {
-      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
-      return await res.json();
-    }
-
-// --- Send Message ---
-// --- Send Message ---
-async function sendMessage(type, userMessage) {
-  const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
-  try {
-    const body = {
-      message: userMessage,
-      question: userMessage,
-      userId: config.userid,
-      concept: config.concept,
-      env: config.env,
-    };
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const json = await res.json();
-    console.log("🧠 Chatbot Response:", json);
-
-    const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
-    lastIntent = intent;
-
-    // Normalize data structure safely
-    let payload = {};
-    if (typeof json.data === "string") {
-      payload.chat_message = json.data;
-    } else if (json.data && typeof json.data === "object") {
-      payload = json.data;
-    } else {
-      payload = json;
-    }
-
-    // --- INTENT HANDLING ---
-    if (intent === "POLICY_QUESTION" || intent === "GENERAL_QUERY") {
-      renderBotMessage(payload.chat_message || "No information found.");
-      renderBackToMenu();
-    }
-
-    // --- ORDER TRACKING HANDLING ---
-    else if (intent === "ORDER_TRACKING") {
-      if (payload.chat_message && payload.chat_message.trim() !== "") {
-        renderBotMessage(payload.chat_message);
-      } else {
-        renderBotMessage("<b>🧾 Customer Details:</b>");
-        chatBody.innerHTML += `
-          <div class="bubble bot-bubble">
-            <b>Name:</b> ${payload.customerName || "N/A"}<br/>
-            <b>Mobile:</b> ${payload.mobileNo || "N/A"}
-          </div>`;
-
-        if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
-          payload.orderDetailsList.forEach((o) => {
-            const backendBase = config.backend || window.location.origin;
-            const productLink = o.productURL ? `${backendBase}${o.productURL}` : "#";
-            const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
-            const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
-
-            chatBody.innerHTML += `
-              <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;border-radius:10px;margin-top:6px;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <img src="${o.imageURL || 'https://via.placeholder.com/80'}" style="width:80px;height:80px;border-radius:6px;object-fit:cover;">
-                  <div>
-                    <a href="${productLink}" target="_blank" style="color:${theme.primary};font-weight:600;">${o.productName || "Product"}</a><br/>
-                    <span style="font-size:13px;color:#555;">${o.color || ""} ${o.size ? " | " + o.size : ""}</span><br/>
-                    <span style="font-size:13px;color:#555;">Qty: ${o.qty || 1} | <b>${o.netAmount || ""}</b></span>
-                  </div>
-                </div>
-                <hr style="border:none;border-top:1px dashed #ddd;margin:8px 0;">
-                <div style="font-size:13px;color:#444;">
-                  <b>Order No:</b> ${o.orderNo}<br/>
-                  ${o.orderAmount ? `<b>Order Amount:</b> ₹${o.orderAmount}<br/>` : ""}
-                  ${o.estmtDate ? `<b>Estimated Delivery:</b> ${o.estmtDate}<br/>` : ""}
-                  ${o.latestStatus ? `<b>Latest Status:</b> <span style="color:${theme.primary};">${o.latestStatus}</span><br/>` : ""}
-                </div>
-                <div style="font-size:13px;margin-top:6px;">${returnMsg} | ${exchangeMsg}</div>
-              </div>`;
-          });
-        } else {
-          renderBotMessage("No recent orders found.");
-        }
-      }
-      renderBackToMenu();
-    }
-
-    // --- DEFAULT CASE ---
-    else {
-      renderBotMessage(payload.chat_message || payload.data || "No response available.");
-      renderBackToMenu();
-    }
-  } catch (e) {
-    console.error("❌ Chatbot error:", e);
-    renderBotMessage("⚠️ Something went wrong. Please try again.");
-    renderBackToMenu();
-  }
-}
-
-
-
-    // --- Handle Submenus ---
-    async function handleSubmenu(sub) {
-      clearBody(); // clear previous messages for clean view
-      renderBackToMenu();
-      renderUserMessage(sub.title);
-
-      if (
-        sub.title.toLowerCase().includes("near") &&
-        sub.title.toLowerCase().includes("store")
-      ) {
-        renderBotMessage("📍 Detecting your location...");
-        if (!navigator.geolocation) {
-          renderBotMessage("⚠️ Geolocation not supported.");
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
-            renderBotMessage("Fetching nearby stores...");
-            try {
-              const res = await fetch(`${config.backend}/chat/nearby-stores`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  latitude: lat,
-                  longitude: lon,
-                  concept: config.concept,
-                  env: config.env,
-                  userId: config.userid,
-                }),
-              });
-              const json = await res.json();
-              if (json?.data?.stores?.length) {
-                json.data.stores.forEach((s) => {
-                  chatBody.innerHTML += `
-                    <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};border-radius:12px;padding:10px;margin:8px 0;">
-                      <b>${s.storeName}</b><br/>
-                      ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${
-                    s.postalCode ? "- " + s.postalCode : ""
-                  }<br/>
-                      ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
-                      ${
-                        s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""
-                      }
-                      <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
-                         style="color:${theme.primary};font-weight:600;">📍 View on Map</a>
-                    </div>`;
-                });
-              } else renderBotMessage("😔 No nearby stores found.");
-            } catch {
-              renderBotMessage("⚠️ Error fetching store list.");
-            }
-          },
-          () => renderBotMessage("❌ Permission denied for location.")
-        );
-        inputContainer.style.display = "none";
-        return;
-      }
-
-      renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
-      inputContainer.style.display = "flex";
-      sendButton.onclick = () => {
-        const msg = inputField.value.trim();
-        if (!msg) return;
-        renderUserMessage(msg);
-        sendMessage(sub.type, msg);
-        inputField.value = "";
-      };
-    }
-
-    // --- Menus ---
-    async function showGreeting() {
-      clearBody();
-      inputContainer.style.display = "none";
-      renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`);
-      renderBotMessage("Please choose an option below 👇");
-      const menus = await fetchMenus();
-      menus.forEach((menu) => {
-        const btn = document.createElement("button");
-        btn.textContent = menu.title;
-        Object.assign(btn.style, {
-          width: "100%",
-          margin: "6px 0",
-          padding: "10px",
-          border: `1px solid ${theme.primary}`,
-          borderRadius: "10px",
-          background: "#fff",
-          color: theme.primary,
-          cursor: "pointer",
-        });
-        btn.onclick = () => showSubMenus(menu);
-        chatBody.appendChild(btn);
-      });
-    }
-
-    async function showSubMenus(menu) {
-      clearBody();
-      renderBackToMenu();
-      renderUserMessage(menu.title);
-      renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
-      const subs = await fetchSubMenus(menu.id);
-      if (!subs?.length) return renderBotMessage("No sub-options found.");
-      subs.forEach((sub) => {
-        const sbtn = document.createElement("button");
-        sbtn.textContent = sub.title;
-        Object.assign(sbtn.style, {
-          width: "100%",
-          margin: "6px 0",
-          padding: "10px",
-          border: `1px solid ${theme.primary}`,
-          borderRadius: "10px",
-          background: sub.type === "dynamic" ? "#EEF2FF" : "#fff",
-          color: theme.primary,
-          cursor: "pointer",
-        });
-        sbtn.onclick = () => handleSubmenu(sub);
-        chatBody.appendChild(sbtn);
-      });
-    }
-
-    // --- Toggle ---
-    button.onclick = () => {
-      chatWindow.style.display =
-        chatWindow.style.display === "flex" ? "none" : "flex";
-      if (chatWindow.style.display === "flex") showGreeting();
-    };
+    chatWindow.querySelector("#close-chat").onclick = () => (chatWindow.style.display = "none");
+    return chatWindow;
   }
 
+  // --- Initialize ---
   if (document.readyState === "loading") {
     window.addEventListener("DOMContentLoaded", initChatWidget);
   } else {
