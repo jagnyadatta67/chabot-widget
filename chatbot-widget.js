@@ -195,8 +195,8 @@
         const json = await res.json();
         const intent = json.intent || json.data?.intent || "GENERAL_QUERY";
         const payload = json.data || json;
-
-        renderBotMessage(payload.chat_message || payload.data || "No information found.");
+         console.log(payload.data);
+        renderBotMessage(payload.chat_message || payload.data );
       } catch (e) {
         renderBotMessage("⚠️ Something went wrong. Please try again.");
       }
