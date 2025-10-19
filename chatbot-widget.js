@@ -130,6 +130,7 @@
       POLICY_QUESTION: handleGeneralIntent,
       GENERAL_QUERY: handleGeneralIntent,
       ORDER_TRACKING: handleOrderTracking,
+      CUSTOMER_PROFILE:handleCustomerProfile,
       DEFAULT: handleDefaultIntent,
     };
 
@@ -164,6 +165,45 @@
       }
       renderBackToMenu();
     }
+
+
+    function handleCustomerProfile(payload) {
+      const profile = payload?.data?.customerProfile;
+    
+      if (!profile) {
+        renderBotMessage("Sorry, I couldn’t fetch your profile details.");
+        renderBackToMenu();
+        return;
+      }
+    
+      // Use top-level or inner chat message if available
+      const chatMsg =
+        payload?.data?.chat_message || profile?.chat_message || "";
+    
+      if (chatMsg.trim() !== "") {
+        renderBotMessage(chatMsg);
+      } else {
+        renderBotMessage("<b>🧾 Customer Details:</b>");
+    
+        chatBody.innerHTML += `
+          <div class="bubble bot-bubble">
+            <b>Name:</b> ${profile.name || "N/A"}<br/>
+            <b>Email:</b> ${profile.email || "N/A"}<br/>
+            <b>Mobile:</b> ${profile.signInMobile || "N/A"}<br/>
+            <b>Gender:</b> ${profile.gender || "N/A"}<br/>
+            ${
+              profile.defaultAddress
+                ? `<b>Address:</b> ${profile.defaultAddress.line1 || ""}, ${profile.defaultAddress.town || ""}, ${
+                    profile.defaultAddress.region?.name || ""
+                  }, ${profile.defaultAddress.country?.name || ""} - ${profile.defaultAddress.postalCode || ""}`
+                : "<b>Address:</b> N/A"
+            }
+          </div>`;
+      }
+    
+      renderBackToMenu();
+    }
+    
 
     // --- Extract Order Number ---
     function extractOrderNumber(orderNo) {

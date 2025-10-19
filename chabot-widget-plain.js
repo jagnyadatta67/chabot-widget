@@ -81,7 +81,9 @@
       chatBody.scrollTop = chatBody.scrollHeight;
     };
 
+    // --- Back to Menu: always inserted above footer (bottom) ---
     const renderBackToMenu = () => {
+      // remove existing if any
       const existing = document.getElementById("back-to-menu-btn");
       if (existing) existing.remove();
 
@@ -89,8 +91,9 @@
       backBtn.id = "back-to-menu-btn";
       backBtn.textContent = "⬅️ Back to Main Menu";
       Object.assign(backBtn.style, {
-        width: "100%",
-        margin: "10px 0",
+        width: "90%",
+        margin: "10px auto",
+        display: "block",
         padding: "10px",
         border: `1px solid ${theme.primary}`,
         borderRadius: "10px",
@@ -99,8 +102,17 @@
         cursor: "pointer",
         fontWeight: "600",
       });
+
       backBtn.onclick = () => showGreeting();
-      chatBody.prepend(backBtn);
+
+      // Insert before footer inside chatWindow so it stays at bottom
+      const footer = chatWindow.querySelector("#chat-footer");
+      if (footer && footer.parentNode) {
+        footer.parentNode.insertBefore(backBtn, footer);
+      } else {
+        // fallback: append to chatWindow
+        chatWindow.appendChild(backBtn);
+      }
     };
 
     // --- API Helpers ---
@@ -118,6 +130,7 @@
       POLICY_QUESTION: handleGeneralIntent,
       GENERAL_QUERY: handleGeneralIntent,
       ORDER_TRACKING: handleOrderTracking,
+      CUSTOMER_PROFILE:handleCustomerProfile,
       DEFAULT: handleDefaultIntent,
     };
 
@@ -153,38 +166,134 @@
       renderBackToMenu();
     }
 
+
+    function handleCustomerProfile(payload) {
+      const profile = payload?.data?.customerProfile;
+    
+      if (!profile) {
+        renderBotMessage("Sorry, I couldn’t fetch your profile details.");
+        renderBackToMenu();
+        return;
+      }
+    
+      // Use top-level or inner chat message if available
+      const chatMsg =
+        payload?.data?.chat_message || profile?.chat_message || "";
+    
+      if (chatMsg.trim() !== "") {
+        renderBotMessage(chatMsg);
+      } else {
+        renderBotMessage("<b>🧾 Customer Details:</b>");
+    
+        chatBody.innerHTML += `
+          <div class="bubble bot-bubble">
+            <b>Name:</b> ${profile.name || "N/A"}<br/>
+            <b>Email:</b> ${profile.email || "N/A"}<br/>
+            <b>Mobile:</b> ${profile.signInMobile || "N/A"}<br/>
+            <b>Gender:</b> ${profile.gender || "N/A"}<br/>
+            ${
+              profile.defaultAddress
+                ? `<b>Address:</b> ${profile.defaultAddress.line1 || ""}, ${profile.defaultAddress.town || ""}, ${
+                    profile.defaultAddress.region?.name || ""
+                  }, ${profile.defaultAddress.country?.name || ""} - ${profile.defaultAddress.postalCode || ""}`
+                : "<b>Address:</b> N/A"
+            }
+          </div>`;
+      }
+    
+      renderBackToMenu();
+    }
+    
+
+    // --- Extract Order Number ---
+    function extractOrderNumber(orderNo) {
+      if (!orderNo) return "N/A";
+      try {
+        const m = orderNo.match(/\/order\/([^\/?\#]+)/i);
+        if (m && m[1]) return m[1];
+        const m2 = orderNo.match(/(\d{5,})/);
+        if (m2) return m2[1];
+        return orderNo.split("?")[0].split("#")[0];
+      } catch {
+        return orderNo;
+      }
+    }
+
+    // --- Copy to Clipboard ---
+    window.copyToClipboard = async function (text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        let toast = document.getElementById("chat-copy-toast");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = "chat-copy-toast";
+          Object.assign(toast.style, {
+            position: "fixed",
+            bottom: "160px",
+            right: "30px",
+            background: "#111",
+            color: "#fff",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            zIndex: 10000,
+            opacity: 0.95,
+            fontSize: "13px",
+          });
+          document.body.appendChild(toast);
+        }
+        toast.textContent = "✅ Order number copied!";
+        toast.style.display = "block";
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => (toast.style.display = "none"), 1600);
+      } catch {
+        alert("Copy failed. Please copy manually.");
+      }
+    };
+
+    // --- Enhanced Order Card ---
     const renderOrderCard = (o) => {
-      const backendBase = config.backend || window.location.origin;
-      const productLink = o.productURL ? `${backendBase}${o.productURL}` : "#";
+      const orderNumber = extractOrderNumber(o.orderNo);
+      const orderUrl =
+        o.orderNo && o.orderNo.startsWith("http")
+          ? o.orderNo
+          : `${window.location.origin}/my-account/order/${orderNumber}`;
       const returnMsg = o.returnAllow ? "✅ Return Available" : "🚫 No Return";
       const exchangeMsg = o.exchangeAllow ? "♻️ Exchange Available" : "🚫 No Exchange";
+      const statusBadge = o.latestStatus
+        ? `<span style="display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid ${theme.primary};font-weight:600;font-size:12px;color:${theme.primary};margin-left:6px;">${o.latestStatus}</span>`
+        : "";
 
       return `
-        <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:10px;border-radius:10px;margin-top:6px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img src="${o.imageURL || "https://via.placeholder.com/80"}" style="width:80px;height:80px;border-radius:6px;object-fit:cover;">
-            <div>
-              <a href="${productLink}" target="_blank" style="color:${theme.primary};font-weight:600;">${o.productName || "Product"}</a><br/>
-              <span style="font-size:13px;color:#555;">${o.color || ""} ${o.size ? " | " + o.size : ""}</span><br/>
-              <span style="font-size:13px;color:#555;">Qty: ${o.qty || 1} | <b>${o.netAmount || ""}</b></span>
+        <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:12px;border-radius:12px;margin-top:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <img src="${o.imageURL || "https://via.placeholder.com/80"}" style="width:84px;height:84px;border-radius:8px;object-fit:cover;border:1px solid #eee;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="font-weight:700;color:#222;font-size:14px;">${o.productName || "Product"}</div>
+                ${statusBadge}
+              </div>
+              <div style="font-size:13px;color:#555;margin-top:6px;">${o.color || ""}${o.size ? " | " + o.size : ""}</div>
+              <div style="margin-top:8px;font-size:13px;color:#444;">
+                <strong>Qty:</strong> ${o.qty || 1} | <strong>Net:</strong> ${o.netAmount || "-"}
+              </div>
+              <div style="margin-top:10px;">
+                <div style="font-size:13px;margin-bottom:4px;"><b>Order No:</b> <span style="font-weight:600;color:#111;">${orderNumber}</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+                  <a href="${orderUrl}" target="_blank" style="text-decoration:none;">
+                    <button style="background:${theme.primary};color:#fff;padding:6px 10px;border:none;border-radius:8px;cursor:pointer;font-size:13px;">View Order</button>
+                  </a>
+                  <button onclick="copyToClipboard('${orderNumber}')" style="background:#fff;border:1px solid ${theme.primary};color:${theme.primary};padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px;">Copy Order #</button>
+                </div>
+              </div>
+              ${o.orderAmount ? `<div style="font-size:13px;color:#666;margin-top:8px;"><strong>Amount:</strong> ₹${o.orderAmount}</div>` : ""}
+              ${o.estmtDate ? `<div style="font-size:13px;color:#666;margin-top:4px;"><strong>ETA:</strong> ${o.estmtDate}</div>` : ""}
+              <div style="font-size:13px;margin-top:8px;">${returnMsg} | ${exchangeMsg}</div>
             </div>
           </div>
-          <hr style="border:none;border-top:1px dashed #ddd;margin:8px 0;">
-          <div style="font-size:13px;color:#444;">
-            <b>Order No:</b> ${o.orderNo}<br/>
-            ${o.orderAmount ? `<b>Order Amount:</b> ₹${o.orderAmount}<br/>` : ""}
-            ${o.estmtDate ? `<b>Estimated Delivery:</b> ${o.estmtDate}<br/>` : ""}
-            ${
-              o.latestStatus
-                ? `<b>Latest Status:</b> <span style="color:${theme.primary};">${o.latestStatus}</span><br/>`
-                : ""
-            }
-          </div>
-          <div style="font-size:13px;margin-top:6px;">${returnMsg} | ${exchangeMsg}</div>
         </div>`;
     };
 
-    // --- Core Send Logic ---
+    // --- Send Message (unchanged) ---
     async function sendMessage(type, userMessage) {
       const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
       try {
@@ -195,21 +304,16 @@
           concept: config.concept,
           env: config.env,
         };
-
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
         const json = await res.json();
         console.log("🧠 Chatbot Response:", json);
-
         const intent = json.intent || json.data?.intent || "DEFAULT";
         let payload = typeof json.data === "string" ? { chat_message: json.data } : json.data || json;
-
         const handler = INTENT_HANDLERS[intent] || INTENT_HANDLERS.DEFAULT;
         handler(payload);
       } catch (e) {
@@ -219,7 +323,7 @@
       }
     }
 
-    // --- Menu Navigation ---
+    // --- Menus, Submenus, etc. (same as before) ---
     async function showGreeting() {
       clearBody();
       inputContainer.style.display = "none";
@@ -227,6 +331,8 @@
       renderBotMessage("Please choose an option below 👇");
       const menus = await fetchMenus();
       menus.forEach((menu) => renderMenuButton(menu));
+      // show back button at bottom after rendering menu
+      renderBackToMenu();
     }
 
     const renderMenuButton = (menu) => {
@@ -248,12 +354,17 @@
 
     async function showSubMenus(menu) {
       clearBody();
-      renderBackToMenu();
       renderUserMessage(menu.title);
       renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
       const subs = await fetchSubMenus(menu.id);
-      if (!subs?.length) return renderBotMessage("No sub-options found.");
+      if (!subs?.length) {
+        renderBotMessage("No sub-options found.");
+        renderBackToMenu();
+        return;
+      }
       subs.forEach((sub) => renderSubmenuButton(sub));
+      // ensure back button is at bottom after submenu items
+      renderBackToMenu();
     }
 
     const renderSubmenuButton = (sub) => {
@@ -273,16 +384,15 @@
       chatBody.appendChild(sbtn);
     };
 
-    // --- Submenu Interaction ---
     async function handleSubmenu(sub) {
       clearBody();
-      renderBackToMenu();
       renderUserMessage(sub.title);
-
       if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
-        return handleNearbyStore();
+        // nearby store flow will add results then back button
+        await handleNearbyStore();
+        renderBackToMenu();
+        return;
       }
-
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
       inputContainer.style.display = "flex";
       sendButton.onclick = () => {
@@ -292,13 +402,16 @@
         sendMessage(sub.type, msg);
         inputField.value = "";
       };
+      // render back button after showing input
+      renderBackToMenu();
     }
 
-    // --- Nearby Store ---
     async function handleNearbyStore() {
       renderBotMessage("📍 Detecting your location...");
-      if (!navigator.geolocation) return renderBotMessage("⚠️ Geolocation not supported.");
-
+      if (!navigator.geolocation) {
+        renderBotMessage("⚠️ Geolocation not supported.");
+        return;
+      }
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude: lat, longitude: lon } = pos.coords;
@@ -330,11 +443,17 @@
                   </div>`;
               });
             } else renderBotMessage("😔 No nearby stores found.");
+            // after nearby stores, ensure back button at bottom
+            renderBackToMenu();
           } catch {
             renderBotMessage("⚠️ Error fetching store list.");
+            renderBackToMenu();
           }
         },
-        () => renderBotMessage("❌ Permission denied for location.")
+        () => {
+          renderBotMessage("❌ Permission denied for location.");
+          renderBackToMenu();
+        }
       );
     }
 
@@ -351,7 +470,7 @@
         <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
           <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
         </div>
-        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
+        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};Color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
       </div>`;
     Object.assign(button.style, {
       position: "fixed",
@@ -392,10 +511,17 @@
       border: 2px solid ${theme.primary};
       z-index: 9999;
     `;
-
+  
+    // Apply white logo filter only for darker themes (Max, Lifestyle, Homecentre)
+    const isDarkHeader = ["MAX", "LIFESTYLE", "HOMECENTRE"].includes(config.concept);
+    const logoFilter = isDarkHeader ? "filter: brightness(0) invert(1);" : "";
+  
     chatWindow.innerHTML = `
       <div style="background:${theme.gradient};color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:600;">
-        <span><img src="${theme.logo}" style="height:20px;margin-right:6px;"> Chat Service</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <img src="${theme.logo}" style="height:22px;${logoFilter}" alt="${config.concept} logo">
+          <span>Chat Service</span>
+        </span>
         <span id="close-chat" style="cursor:pointer;">✖</span>
       </div>
       <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;font-size:14px;"></div>
@@ -403,14 +529,16 @@
         <input id="chat-input" placeholder="Type your message..." style="flex:1;padding:10px;border:none;outline:none;">
         <button id="chat-send" style="background:${theme.gradient};color:white;border:none;padding:10px 16px;cursor:pointer;">Send</button>
       </div>
-      <div style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
+      <div id="chat-footer" style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
         Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
       </div>`;
+  
     document.body.appendChild(chatWindow);
-
+  
     chatWindow.querySelector("#close-chat").onclick = () => (chatWindow.style.display = "none");
     return chatWindow;
   }
+  
 
   // --- Initialize ---
   if (document.readyState === "loading") {
