@@ -168,6 +168,20 @@
 
 
     function handleCustomerProfile(payload) {
+
+
+      const cht = payload?.data?.chat_message || payload?.chat_message || "";
+      const orderList = payload?.data?.orderDetailsList || payload?.orderDetailsList || [];
+    
+      // Case: API returns chat message indicating login issue or no data
+      if (cht && (!orderList || orderList.length === 0)) {
+        renderBotMessage(cht);
+        triggerLoginPopup();
+        renderBackToMenu();
+        return;
+      }
+
+
       const profile = payload.customerProfile;
     
       if (!profile) {
@@ -204,6 +218,18 @@
       renderBackToMenu();
     }
     
+    function triggerLoginPopup() {
+      setTimeout(() => {
+        const signupBtn = document.getElementById("account-actions-signup");
+        if (signupBtn) {
+          signupBtn.click();
+          console.log("🔑 Triggered signup/login popup automatically");
+        } else {
+          console.warn("⚠️ Signup button not found (id='account-actions-signup').");
+        }
+      }, 600);
+    }
+
 
     // --- Extract Order Number ---
     function extractOrderNumber(orderNo) {
