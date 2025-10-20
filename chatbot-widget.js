@@ -624,7 +624,7 @@
               cardNumber,
               concept: config.concept,
               env: config.env,
-              appId: config.appid,
+              appid: config.appid,
               userId: config.userid,
               message:"Check my gift cad balance"
             }),
