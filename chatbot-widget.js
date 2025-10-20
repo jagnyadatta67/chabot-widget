@@ -539,6 +539,11 @@
         renderBackToMenu();
         return;
       }
+      if (sub.title.toLowerCase().includes("gift") && sub.title.toLowerCase().includes("card")) {
+        await handleGiftCardBalance();
+        renderBackToMenu();
+        return;
+      }
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`);
       inputContainer.style.display = "flex";
       sendButton.onclick = () => {
@@ -551,6 +556,115 @@
       // render back button after showing input
       renderBackToMenu();
     }
+
+
+    async function handleGiftCardBalance() {
+      renderBotMessage("🎁 Please enter your gift card number below to check your balance:");
+    
+      const chatBody = document.querySelector("#chat-body");
+    
+      // === Create input UI ===
+      const inputContainer = document.createElement("div");
+      Object.assign(inputContainer.style, {
+        display: "flex",
+        alignItems: "center",
+        marginTop: "10px",
+        gap: "8px",
+      });
+    
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Enter 16-digit Gift Card Number";
+      input.maxLength = 16;
+      input.pattern = "[0-9]*";
+      input.style = `
+        flex: 1;
+        padding: 8px 10px;
+        border: 1px solid ${theme.primary};
+        border-radius: 8px;
+        outline: none;
+      `;
+    
+      const button = document.createElement("button");
+      button.textContent = "Check Balance";
+      Object.assign(button.style, {
+        background: theme.primary,
+        color: "#fff",
+        border: "none",
+        borderRadius: "8px",
+        padding: "8px 12px",
+        cursor: "pointer",
+        fontWeight: "600",
+      });
+    
+      inputContainer.appendChild(input);
+      inputContainer.appendChild(button);
+      chatBody.appendChild(inputContainer);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    
+      // === On button click ===
+      button.onclick = async () => {
+        const cardNumber = input.value.trim();
+    
+        if (!cardNumber || !/^[0-9]{6,19}$/.test(cardNumber)) {
+          renderBotMessage("⚠️ Please enter a valid gift card number (numbers only).");
+          return;
+        }
+    
+        renderUserMessage(`🔢 Gift Card: ${cardNumber}`);
+        renderBotMessage("💳 Checking your gift card balance...");
+    
+        try {
+          showLoader("Fetching balance...");
+    
+          const res = await fetch(`${config.backend}/chat/gift-card-balance`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardNumber,
+              concept: config.concept,
+              env: config.env,
+              appId: config.appid,
+              userId: config.userid,
+            }),
+          });
+    
+          hideLoader();
+    
+          const json = await res.json();
+          const data = json?.data || json;
+    
+          if (data?.giftCardDetails) {
+            const g = data.giftCardDetails;
+    
+            renderBotMessage(data.chat_message || "Here’s your gift card balance:");
+    
+            chatBody.innerHTML += `
+              <div class="bubble bot-bubble" 
+                   style="background:#fff;border:1px solid ${theme.primary};
+                          border-radius:12px;padding:12px;margin:10px 0;
+                          box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+                <b>Card Number:</b> ${g.cardNumber || "N/A"}<br/>
+                <b>Status:</b> ${g.status || "N/A"}<br/>
+                <b>Message:</b> ${g.message || "N/A"}<br/>
+                <b>Balance:</b> ₹${g.balanceAmount?.toFixed(2) || "0.00"} ${g.currency || "INR"}
+              </div>
+            `;
+          } else {
+            renderBotMessage("😔 Unable to fetch your gift card balance. Please try again later.");
+          }
+    
+          renderBackToMenu();
+          chatBody.scrollTop = chatBody.scrollHeight;
+        } catch (err) {
+          hideLoader();
+          console.error("❌ Gift card balance error:", err);
+          renderBotMessage("⚠️ Something went wrong while checking your gift card balance.");
+          renderBackToMenu();
+        }
+      };
+    }
+    
 
     async function handleNearbyStore() {
       renderBotMessage("📍 Detecting your location...");
