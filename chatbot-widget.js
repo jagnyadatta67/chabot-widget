@@ -626,6 +626,7 @@
               env: config.env,
               appId: config.appid,
               userId: config.userid,
+              message:"Check my gift cad balance"
             }),
           });
     
