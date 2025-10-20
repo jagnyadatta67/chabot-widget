@@ -17,6 +17,10 @@
       (scriptTag?.getAttribute("data-concept") ||
         window.CHATBOT_CONFIG?.concept ||
         "LIFESTYLE").toUpperCase(),
+   appid:
+        scriptTag?.getAttribute("data-appid") ||
+        window.CHATBOT_CONFIG?.appid ||
+        "UNKNOWN_APP",
     env:
       scriptTag?.getAttribute("data-env") ||
       window.CHATBOT_CONFIG?.env ||
@@ -391,6 +395,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
           userId: config.userid,
           concept: config.concept,
           env: config.env,
+          appid:config.appid,
         };
         const res = await fetch(url, {
           method: "POST",
@@ -514,6 +519,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
                 longitude: lon,
                 concept: config.concept,
                 env: config.env,
+                appId:config.appid,
                 userId: config.userid,
               }),
             });

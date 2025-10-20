@@ -63,6 +63,28 @@
     const inputField = chatWindow.querySelector("#chat-input");
     const sendButton = chatWindow.querySelector("#chat-send");
 
+    // Loader utility (show/hide)
+    function showLoader(message = "Please wait...") {
+      let loader = chatWindow.querySelector(".chat-loader");
+      if (!loader) {
+        loader = document.createElement("div");
+        loader.className = "chat-loader";
+        loader.innerHTML = `
+          <div class="chat-loader-inner">
+            <div class="chat-spinner" aria-hidden="true"></div>
+            <div class="chat-loader-text">${message}</div>
+          </div>
+        `;
+        chatWindow.appendChild(loader);
+      }
+      loader.style.display = "flex";
+    }
+
+    function hideLoader() {
+      const loader = chatWindow.querySelector(".chat-loader");
+      if (loader) loader.style.display = "none";
+    }
+
     // --- Utility Functions ---
     const clearBody = () => (chatBody.innerHTML = "");
 
@@ -98,13 +120,15 @@
         width: "90%",
         margin: "10px auto",
         display: "block",
-        padding: "10px",
+        padding: "12px",
         border: `1px solid ${theme.primary}`,
         borderRadius: "10px",
         background: "#fff",
         color: theme.primary,
         cursor: "pointer",
-        fontWeight: "600",
+        fontWeight: "700",
+        fontSize: "14px",
+        textAlign: "center",
       });
 
       backBtn.onclick = () => showGreeting();
@@ -121,12 +145,26 @@
 
     // --- API Helpers ---
     async function fetchMenus() {
-      const res = await fetch(`${config.backend}/menus`);
-      return res.json();
+      try {
+        showLoader("Loading menu...");
+        const res = await fetch(`${config.backend}/menus`);
+        hideLoader();
+        return res.json();
+      } catch (e) {
+        hideLoader();
+        throw e;
+      }
     }
     async function fetchSubMenus(menuId) {
-      const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
-      return res.json();
+      try {
+        showLoader("Loading options...");
+        const res = await fetch(`${config.backend}/menus/${menuId}/submenus`);
+        hideLoader();
+        return res.json();
+      } catch (e) {
+        hideLoader();
+        throw e;
+      }
     }
 
     // --- Intent Handlers ---
@@ -176,7 +214,6 @@
 
 
       if (checkAndTriggerLogin(payload, "Please login to check your order details.")) return;
-
 
 
       const profile = payload.customerProfile;
@@ -236,7 +273,7 @@
  * @param {string} [defaultMsg] - Optional fallback message to show.
  * @returns {boolean} true if login popup was triggered, else false.
  */
-/**
+ /**
  * Checks if backend message asks user to login.
  * If yes, shows a clickable "Login" link that triggers the popup.
  *
@@ -244,7 +281,7 @@
  * @param {string} [defaultMsg] - Optional fallback message.
  * @returns {boolean} true if login link rendered, else false.
  */
-function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.") {
+ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.") {
   const cht = payload?.data?.chat_message || payload?.chat_message || "";
   const normalizedMsg = cht.trim().toLowerCase();
 
@@ -286,7 +323,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
   }
 
   return false;
-}
+ }
 
 
 
@@ -357,24 +394,25 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
   : "";
       return `
         <div class="bubble bot-bubble" style="background:#fff;border:1px solid ${theme.primary};padding:12px;border-radius:12px;margin-top:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
-          <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
             <img src="${o.imageURL || "https://via.placeholder.com/80"}" style="width:84px;height:84px;border-radius:8px;object-fit:cover;border:1px solid #eee;">
-            <div style="flex:1;">
-              <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="flex:1;min-width:180px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                 <div style="font-weight:700;color:#222;font-size:14px;">${o.productName || "Product"}</div>
                 ${statusBadge}
               </div>
               <div style="font-size:13px;color:#555;margin-top:6px;">${o.color || ""}${o.size ? " | " + o.size : ""}</div>
-              <div style="margin-top:8px;font-size:13px;color:#444;">
-                <strong>Qty:</strong> ${o.qty || 1} | <strong>Net:</strong> ${o.netAmount || "-"}
+              <div style="margin-top:8px;font-size:13px;color:#444;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+                <div><strong>Qty:</strong> ${o.qty || 1}</div>
+                <div><strong>Net:</strong> ${o.netAmount || "-"}</div>
               </div>
               <div style="margin-top:10px;">
                 <div style="font-size:13px;margin-bottom:4px;"><b>Order No:</b> <span style="font-weight:600;color:#111;">${orderNumber}</span></div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
                   <a href="${orderUrl}" target="_blank" style="text-decoration:none;">
-                    <button style="background:${theme.primary};color:#fff;padding:6px 10px;border:none;border-radius:8px;cursor:pointer;font-size:13px;">View Order</button>
+                    <button style="background:${theme.primary};color:#fff;padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-size:13px;">View Order</button>
                   </a>
-                  <button onclick="copyToClipboard('${orderNumber}')" style="background:#fff;border:1px solid ${theme.primary};color:${theme.primary};padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px;">Copy Order #</button>
+                  <button onclick="copyToClipboard('${orderNumber}')" style="background:#fff;border:1px solid ${theme.primary};color:${theme.primary};padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;">Copy Order #</button>
                 </div>
               </div>
               ${o.orderAmount ? `<div style="font-size:13px;color:#666;margin-top:8px;"><strong>Amount:</strong> ₹${o.orderAmount}</div>` : ""}
@@ -385,10 +423,11 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         </div>`;
     };
 
-    // --- Send Message (unchanged) ---
+    // --- Send Message (unchanged functionality but with loader) ---
     async function sendMessage(type, userMessage) {
       const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`;
       try {
+        showLoader("Thinking...");
         const body = {
           message: userMessage,
           question: userMessage,
@@ -402,6 +441,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+        hideLoader();
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         console.log("🧠 Chatbot Response:", json);
@@ -410,6 +450,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         const handler = INTENT_HANDLERS[intent] || INTENT_HANDLERS.DEFAULT;
         handler(payload);
       } catch (e) {
+        hideLoader();
         console.error("❌ Chatbot error:", e);
         renderBotMessage("⚠️ Something went wrong. Please try again.");
         renderBackToMenu();
@@ -422,8 +463,12 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       inputContainer.style.display = "none";
       renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`);
       renderBotMessage("Please choose an option below 👇");
-      const menus = await fetchMenus();
-      menus.forEach((menu) => renderMenuButton(menu));
+      try {
+        const menus = await fetchMenus();
+        menus.forEach((menu) => renderMenuButton(menu));
+      } catch (e) {
+        renderBotMessage("⚠️ Unable to load menu right now.");
+      }
       // show back button at bottom after rendering menu
       renderBackToMenu();
     }
@@ -434,12 +479,14 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       Object.assign(btn.style, {
         width: "100%",
         margin: "6px 0",
-        padding: "10px",
+        padding: "12px",
         border: `1px solid ${theme.primary}`,
         borderRadius: "10px",
         background: "#fff",
         color: theme.primary,
         cursor: "pointer",
+        textAlign: "left",
+        fontWeight: "700",
       });
       btn.onclick = () => showSubMenus(menu);
       chatBody.appendChild(btn);
@@ -449,13 +496,17 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       clearBody();
       renderUserMessage(menu.title);
       renderBotMessage(`Fetching options for <b>${menu.title}</b>...`);
-      const subs = await fetchSubMenus(menu.id);
-      if (!subs?.length) {
-        renderBotMessage("No sub-options found.");
-        renderBackToMenu();
-        return;
+      try {
+        const subs = await fetchSubMenus(menu.id);
+        if (!subs?.length) {
+          renderBotMessage("No sub-options found.");
+          renderBackToMenu();
+          return;
+        }
+        subs.forEach((sub) => renderSubmenuButton(sub));
+      } catch (e) {
+        renderBotMessage("⚠️ Unable to load options.");
       }
-      subs.forEach((sub) => renderSubmenuButton(sub));
       // ensure back button is at bottom after submenu items
       renderBackToMenu();
     }
@@ -466,12 +517,14 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       Object.assign(sbtn.style, {
         width: "100%",
         margin: "6px 0",
-        padding: "10px",
+        padding: "12px",
         border: `1px solid ${theme.primary}`,
         borderRadius: "10px",
         background: sub.type === "dynamic" ? "#EEF2FF" : "#fff",
         color: theme.primary,
         cursor: "pointer",
+        textAlign: "left",
+        fontWeight: "700",
       });
       sbtn.onclick = () => handleSubmenu(sub);
       chatBody.appendChild(sbtn);
@@ -511,6 +564,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
           renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
           renderBotMessage("Fetching nearby stores...");
           try {
+            showLoader("Finding stores...");
             const res = await fetch(`${config.backend}/chat/nearby-stores`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -523,6 +577,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
                 userId: config.userid,
               }),
             });
+            hideLoader();
             const json = await res.json();
             if (json?.data?.stores?.length) {
               json.data.stores.forEach((s) => {
@@ -539,7 +594,8 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
             } else renderBotMessage("😔 No nearby stores found.");
             // after nearby stores, ensure back button at bottom
             renderBackToMenu();
-          } catch {
+          } catch (err) {
+            hideLoader();
             renderBotMessage("⚠️ Error fetching store list.");
             renderBackToMenu();
           }
@@ -561,10 +617,10 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
     button.id = "chatbot-button";
     button.innerHTML = `
       <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div style="background:white;border:3px solid ${theme.primary};border-radius:50%;width:65px;height:65px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        <div class="chat-fab-icon">
           <img src="${theme.logo}" alt="${config.concept}" style="width:58px;height:auto;object-fit:contain;">
         </div>
-        <div style="position:absolute;bottom:-4px;right:-4px;background:${theme.primary};Color:white;border-radius:50%;padding:5px;font-size:14px;">💬</div>
+        <div class="chat-fab-badge">💬</div>
       </div>`;
     Object.assign(button.style, {
       position: "fixed",
@@ -576,14 +632,36 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       cursor: "pointer",
       zIndex: "9999",
       transition: "transform 0.2s ease-in-out",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
     });
-    button.onmouseenter = () => (button.style.transform = "scale(1.1)");
+    button.onmouseenter = () => (button.style.transform = "scale(1.08)");
     button.onmouseleave = () => (button.style.transform = "scale(1)");
     button.onclick = () => {
-      chatWindow.style.display = chatWindow.style.display === "flex" ? "none" : "flex";
-      if (chatWindow.style.display === "flex") showGreeting();
+      const chatWindowEl = document.getElementById("chatbot-container");
+      chatWindowEl.style.display = chatWindowEl.style.display === "flex" ? "none" : "flex";
+      if (chatWindowEl.style.display === "flex") showGreeting();
     };
     document.body.appendChild(button);
+
+    // ensure responsive repositioning on small screens
+    function adjustFabForViewport() {
+      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      if (vw < 420) {
+        button.style.right = "14px";
+        button.style.bottom = "18px";
+        button.style.width = "60px";
+        button.style.height = "60px";
+      } else {
+        button.style.right = "25px";
+        button.style.bottom = "25px";
+        button.style.width = "70px";
+        button.style.height = "70px";
+      }
+    }
+    adjustFabForViewport();
+    window.addEventListener("resize", adjustFabForViewport);
   }
 
   function createChatWindow() {
@@ -593,8 +671,8 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       position: fixed;
       bottom: 90px;
       right: 25px;
-      width: 360px;
-      height: 540px;
+      width: clamp(320px, 90vw, 420px);
+      height: clamp(480px, 75vh, 720px);
       background: white;
       border-radius: 16px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.25);
@@ -604,6 +682,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
       font-family: 'Inter', Arial, sans-serif;
       border: 2px solid ${theme.primary};
       z-index: 9999;
+      backdrop-filter: blur(6px);
     `;
   
     // Apply white logo filter only for darker themes (Max, Lifestyle, Homecentre)
@@ -611,7 +690,35 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
     const logoFilter = isDarkHeader ? "filter: brightness(0) invert(1);" : "";
   
     chatWindow.innerHTML = `
-      <div style="background:${theme.gradient};color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:600;">
+      <style>
+        /* Small scoped styles for chatbot */
+        #chatbot-container .chat-header{ padding:12px 16px; display:flex; justify-content:space-between; align-items:center; font-weight:700; }
+        #chatbot-container .bubble{ max-width:100%; box-sizing:border-box; }
+        #chatbot-container .bot-bubble{ background:#fff; }
+        #chatbot-container #chat-body{ padding:10px; }
+        #chatbot-container button{ font-family: inherit; }
+
+        /* loader */
+        #chatbot-container .chat-loader{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; background: rgba(255,255,255,0.75); z-index: 9998; }
+        #chatbot-container .chat-loader-inner{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:12px; border-radius:8px; }
+        #chatbot-container .chat-spinner{ width:40px; height:40px; border-radius:50%; border:4px solid rgba(0,0,0,0.08); border-top-color: ${theme.primary}; animation: chat-spin 1s linear infinite; }
+        @keyframes chat-spin{ to{ transform: rotate(360deg); } }
+        #chatbot-container .chat-loader-text{ font-size:13px; color:#333; font-weight:600; }
+
+        /* responsive tweaks */
+        @media (max-width:420px){
+          #chatbot-container{ right:12px; left:12px; bottom:12px; width: calc(100% - 24px); height: calc(100vh - 24px); border-radius:12px; }
+          #chatbot-container #chat-input-container input{ font-size:16px; }
+        }
+
+        /* Floating button inner styles */
+        .chat-fab-icon{ background:white; border:3px solid ${theme.primary}; border-radius:50%; width:64px; height:64px; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(0,0,0,0.12); }
+        .chat-fab-badge{ position:absolute; bottom:-4px; right:-4px; background:${theme.primary}; color:white; border-radius:50%; padding:6px; font-size:14px; }
+
+        /* accessibility focus */
+        #chatbot-container button:focus, #chatbot-container a:focus{ outline: 3px solid rgba(0,0,0,0.06); outline-offset:2px; }
+      </style>
+      <div class="chat-header" style="background:${theme.gradient};color:white;display:flex;justify-content:space-between;align-items:center;">
         <span style="display:flex;align-items:center;gap:8px;">
           <img src="${theme.logo}" style="height:22px;${logoFilter}" alt="${config.concept} logo">
           <span>Chat Service</span>
@@ -619,13 +726,14 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
         <span id="close-chat" style="cursor:pointer;">✖</span>
       </div>
       <div id="chat-body" style="flex:1;padding:10px;overflow-y:auto;display:flex;flex-direction:column;font-size:14px;"></div>
-      <div id="chat-input-container" style="display:none;border-top:1px solid #e5e7eb;display:flex;">
-        <input id="chat-input" placeholder="Type your message..." style="flex:1;padding:10px;border:none;outline:none;">
-        <button id="chat-send" style="background:${theme.gradient};color:white;border:none;padding:10px 16px;cursor:pointer;">Send</button>
+      <div id="chat-input-container" style="display:none;border-top:1px solid #e5e7eb;align-items:center;padding:8px;gap:8px;">
+        <input id="chat-input" placeholder="Type your message..." style="flex:1;padding:10px;border-radius:8px;border:1px solid #e6e6e6;outline:none;min-height:44px;">
+        <button id="chat-send" style="background:${theme.gradient};color:white;border:none;padding:10px 12px;border-radius:8px;cursor:pointer;">Send</button>
       </div>
       <div id="chat-footer" style="text-align:center;font-size:12px;padding:8px;background:#fafafa;border-top:1px solid #eee;">
         Powered by <img src="${theme.logo}" style="height:20px;margin-left:5px;">
-      </div>`;
+      </div>
+      <div class="chat-loader" role="status" aria-live="polite" aria-hidden="true"></div>`;
   
     document.body.appendChild(chatWindow);
   
@@ -633,11 +741,12 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
     return chatWindow;
   }
   
-
+  
   // --- Initialize ---
   if (document.readyState === "loading") {
     window.addEventListener("DOMContentLoaded", initChatWidget);
   } else {
     initChatWidget();
   }
+
 })();
