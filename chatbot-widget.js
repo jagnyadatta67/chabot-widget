@@ -395,7 +395,7 @@ function checkAndTriggerLogin(payload, defaultMsg = "Please login to continue.")
           userId: config.userid,
           concept: config.concept,
           env: config.env,
-          appId:config.appid,
+          appid:config.appid,
         };
         const res = await fetch(url, {
           method: "POST",
