@@ -626,7 +626,7 @@
               env: config.env,
               appid: config.appid,
               userId: config.userid,
-              message:"Check my gift cad balance"
+              message: "Check my gift card balance"
             }),
           });
     
@@ -635,13 +635,23 @@
           const json = await res.json();
           const data = json?.data || json;
     
-          if (data?.giftCardDetails) {
-            const g = data.giftCardDetails;
+          // ✅ Check for gift card details
+          const g = data?.giftCardDetails || data;
     
+          if (g?.errorOccurred) {
+            const errorReason = g?.errors?.[0]?.reason || "";
+            if (errorReason === "lmg.giftcard.card.not.found") {
+              renderBotMessage("❌ Invalid gift card number. Please check and try again.");
+            } else if (errorReason === "lmg.giftcard.client.server.error") {
+              renderBotMessage("⚠️ Gift card service is currently unavailable. Please try later.");
+            } else {
+              renderBotMessage("😔 Unable to fetch your gift card balance. Please try again later.");
+            }
+          } else if (g?.balanceAmount != null) {
+            // ✅ Success path
             renderBotMessage(data.chat_message || "Here’s your gift card balance:");
-    
             chatBody.innerHTML += `
-              <div class="bubble bot-bubble" 
+              <div class="bubble bot-bubble"
                    style="background:#fff;border:1px solid ${theme.primary};
                           border-radius:12px;padding:12px;margin:10px 0;
                           box-shadow:0 2px 6px rgba(0,0,0,0.05);">
@@ -657,6 +667,7 @@
     
           renderBackToMenu();
           chatBody.scrollTop = chatBody.scrollHeight;
+    
         } catch (err) {
           hideLoader();
           console.error("❌ Gift card balance error:", err);
@@ -665,6 +676,7 @@
         }
       };
     }
+    
     
 
     async function handleNearbyStore() {
