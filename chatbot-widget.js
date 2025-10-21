@@ -623,7 +623,6 @@
             body: JSON.stringify({
               cardNumber,
               concept: config.concept,
-              env: config.env,
               appid: config.appid,
               userId: config.userid,
               message: "Check my gift card balance"
@@ -639,7 +638,7 @@
           const g = data?.giftCardDetails || data;
     
           if (g?.errorOccurred) {
-            const errorReason = g?.errors?.[0]?.reason || "";
+            const errorReason = g?.errors?.[0]?.message || "";
             if (errorReason === "lmg.giftcard.card.not.found") {
               renderBotMessage("❌ Invalid gift card number. Please check and try again.");
             } else if (errorReason === "lmg.giftcard.client.server.error") {
