@@ -623,6 +623,7 @@
             body: JSON.stringify({
               cardNumber,
               concept: config.concept,
+              env: 'www',
               appid: config.appid,
               userId: config.userid,
               message: "Check my gift card balance"
