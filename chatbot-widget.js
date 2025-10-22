@@ -177,11 +177,17 @@
         flex: 1;
       }
 
-      .chat-header-logo {
+     .chat-header-logo.max-concept {
         height: 24px;
         width: auto;
         object-fit: contain;
         filter: brightness(0) invert(1);
+      }
+      .chat-header-logo {
+        height: 24px;
+        width: auto;
+        object-fit: contain;
+       
       }
 
       .chat-header-title {
