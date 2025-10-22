@@ -6,9 +6,7 @@
   // --- Config ---
   const config = {
     backend:
-      scriptTag?.getAttribute("data-backend") ||
-      window.CHATBOT_CONFIG?.backend ||
-      "http://localhost:8080/api",
+      "https://6aaf2dea1fc1.ngrok-free.app",
     userid:
       scriptTag?.getAttribute("data-userid") ||
       window.CHATBOT_CONFIG?.userid ||
