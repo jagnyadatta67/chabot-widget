@@ -1266,7 +1266,7 @@
     <img
       src="${theme.logo}"
       alt="${config.concept} logo"
-      class="chat-header-logo ${config.concept === 'MAX' ? 'max-concept' : ''}"
+      class="chat-header-logo ${config.concept === 'MAX' || config.concept === 'HOMECENTRE' ? 'max-concept' : ''}"
     />
     <span class="chat-header-title">Chat Service</span>
   </div>
