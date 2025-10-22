@@ -1255,13 +1255,18 @@
     const isDarkHeader = ["MAX", "LIFESTYLE", "HOMECENTRE"].includes(config.concept)
 
     chatWindow.innerHTML = `
-      <div class="chat-header">
-        <div class="chat-header-content">
-          <img src="${theme.logo}" alt="${config.concept} logo" class="chat-header-logo">
-          <span class="chat-header-title">Chat Service</span>
-        </div>
-        <span id="close-chat">✖</span>
-      </div>
+     <div class="chat-header">
+  <div class="chat-header-content">
+    <img
+      src="${theme.logo}"
+      alt="${config.concept} logo"
+      class="chat-header-logo ${config.concept === 'MAX' ? 'max-concept' : ''}"
+    />
+    <span class="chat-header-title">Chat Service</span>
+  </div>
+  <span id="close-chat">✖</span>
+</div>
+
       <div id="chat-body"></div>
       <div id="chat-input-container">
         <input id="chat-input" placeholder="Type your message..." />
