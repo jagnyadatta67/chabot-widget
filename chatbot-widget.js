@@ -491,6 +491,58 @@
         background: ${theme.light};
       }
 
+      /* Profile Card */
+      .profile-card {
+        background: white;
+        border: 1px solid ${theme.primary};
+        border-radius: 12px;
+        padding: 14px;
+        margin-top: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      }
+
+      .profile-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .profile-field:last-child {
+        border-bottom: none;
+      }
+
+      .profile-label {
+        font-weight: 600;
+        color: ${theme.dark};
+        min-width: 80px;
+        flex-shrink: 0;
+      }
+
+      .profile-value {
+        color: #555;
+        text-align: right;
+        flex: 1;
+        margin-left: 12px;
+        word-break: break-word;
+      }
+
+      @media (max-width: 480px) {
+        .profile-field {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .profile-value {
+          text-align: left;
+          margin-left: 0;
+          margin-top: 4px;
+        }
+      }
+
       /* Toast */
       #chat-copy-toast {
         position: fixed;
@@ -772,20 +824,37 @@
         renderBotMessage(chatMsg)
       } else {
         renderBotMessage("<b>🧾 Customer Details:</b>")
-        chatBody.innerHTML += `
-          <div class="bubble bot-bubble">
-            <b>Name:</b> ${profile.name || "N/A"}<br/>
-            <b>Email:</b> ${profile.email || "N/A"}<br/>
-            <b>Mobile:</b> ${profile.signInMobile || "N/A"}<br/>
-            <b>Gender:</b> ${profile.gender || "N/A"}<br/>
-            ${
-              profile.defaultAddress
-                ? `<b>Address:</b> ${profile.defaultAddress.line1 || ""}, ${profile.defaultAddress.town || ""}, ${
-                    profile.defaultAddress.region?.name || ""
-                  }, ${profile.defaultAddress.country?.name || ""} - ${profile.defaultAddress.postalCode || ""}`
-                : "<b>Address:</b> N/A"
-            }
-          </div>`
+
+        const profileCard = document.createElement("div")
+        profileCard.className = "profile-card"
+
+        const fields = [
+          { label: "Name", value: profile.name || "N/A" },
+          { label: "Email", value: profile.email || "N/A" },
+          { label: "Mobile", value: profile.signInMobile || "N/A" },
+          { label: "Gender", value: profile.gender || "N/A" },
+          {
+            label: "Address",
+            value: profile.defaultAddress
+              ? `${profile.defaultAddress.line1 || ""}, ${profile.defaultAddress.town || ""}, ${
+                  profile.defaultAddress.region?.name || ""
+                }, ${profile.defaultAddress.country?.name || ""} - ${profile.defaultAddress.postalCode || ""}`
+              : "N/A",
+          },
+        ]
+
+        fields.forEach((field) => {
+          const fieldDiv = document.createElement("div")
+          fieldDiv.className = "profile-field"
+          fieldDiv.innerHTML = `
+            <span class="profile-label">${field.label}:</span>
+            <span class="profile-value">${field.value}</span>
+          `
+          profileCard.appendChild(fieldDiv)
+        })
+
+        chatBody.appendChild(profileCard)
+        chatBody.scrollTop = chatBody.scrollHeight
       }
       renderBackToMenu()
     }
