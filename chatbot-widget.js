@@ -1246,7 +1246,7 @@
       button.style.cssText = `
         width: 100%;
         padding: 10px 0;
-        background-color: #f5a623;
+        background-color:${theme.primary};
         color: white;
         border: none;
         border-radius: 6px;
