@@ -1164,7 +1164,7 @@
       }
     }
 
-    function handleNearbyStore() {
+    async function handleNearbyStore() {
       renderBotMessage("📍 Detecting your location...")
       if (!navigator.geolocation) {
         renderBotMessage("⚠️ Geolocation not supported.")
@@ -1176,29 +1176,7 @@
           const { latitude: lat, longitude: lon } = pos.coords
           renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`)
           renderBotMessage("Fetching nearby stores...")
-          try {
-            showLoader("Finding stores...")
-            const res = await fetch(`${config.backend}/chat/nearby-stores`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                latitude: lat,
-                longitude: lon,
-                concept: config.concept,
-                env: config.env,
-                appId: config.appid,
-                userId: config.userid,
-              }),
-            })
-            hideLoader()
-            const json = await res.json()
-            displayStores(json)
-            renderBackToMenu()
-          } catch (err) {
-            hideLoader()
-            renderBotMessage("⚠️ Error fetching store list.")
-            renderBackToMenu()
-          }
+          await fetchNearbyStores({ latitude: lat, longitude: lon })
         },
         () => {
           renderBotMessage("❌ Permission denied for location.")
@@ -1208,90 +1186,126 @@
     }
     
     function showPincodeOption() {
-      const inputContainer = document.createElement("div")
-      inputContainer.className = "bubble bot-bubble"
-      inputContainer.style.border = `1px solid ${theme.primary}`
-      inputContainer.innerHTML = `
-        <p>No problem! Enter your pincode to find nearby stores:</p>
-        <div style="display: flex; gap: 8px; margin-top: 10px;">
-          <input 
-            type="text" 
-            id="pincodeInput" 
-            placeholder="Enter pincode" 
-            maxlength="6"
-            style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;"
-          />
-          <button 
-            id="submitPincodeBtn" 
-            style="padding: 8px 16px; background-color: ${theme.primary}; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;"
-          >
-            Search
-          </button>
-        </div>
+      const pincodeContainer = document.createElement("div")
+      pincodeContainer.id = "pincode-fallback"
+      pincodeContainer.style.cssText = `
+        display: flex;
+        gap: 12px;
+        margin: 16px 0;
+        padding: 16px;
+        border: 2px solid #f5a623;
+        border-radius: 8px;
+        background-color: #fafafa;
+        align-items: center;
       `
-      chatBody.appendChild(inputContainer)
-      chatBody.scrollTop = chatBody.scrollHeight
     
-      document.getElementById("submitPincodeBtn").addEventListener("click", () => {
-        const pincode = document.getElementById("pincodeInput").value.trim()
-        if (pincode) {
-          handlePincodeSearch(pincode)
-        } else {
-          renderBotMessage("⚠️ Please enter a valid pincode.")
-        }
+      const label = document.createElement("div")
+      label.style.cssText = `
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        min-width: 140px;
+        line-height: 1.4;
+      `
+      label.textContent = "No problem! Enter your pincode to find nearby stores:"
+    
+      const inputWrapper = document.createElement("div")
+      inputWrapper.style.cssText = `
+        display: flex;
+        gap: 8px;
+        flex: 1;
+      `
+    
+      const input = document.createElement("input")
+      input.type = "text"
+      input.id = "pincode-input"
+      input.placeholder = "Enter pincode"
+      input.style.cssText = `
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: inherit;
+      `
+    
+      const button = document.createElement("button")
+      button.textContent = "Search"
+      button.style.cssText = `
+        padding: 10px 24px;
+        background-color: #f5a623;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      `
+    
+      button.addEventListener("click", () => handlePincodeSearch(input.value))
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") handlePincodeSearch(input.value)
       })
     
-      document.getElementById("pincodeInput").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          const pincode = document.getElementById("pincodeInput").value.trim()
-          if (pincode) {
-            handlePincodeSearch(pincode)
-          }
-        }
-      })
+      inputWrapper.appendChild(input)
+      inputWrapper.appendChild(button)
+      pincodeContainer.appendChild(label)
+      pincodeContainer.appendChild(inputWrapper)
+      chatBody.appendChild(pincodeContainer)
+      input.focus()
     }
     
     async function handlePincodeSearch(pincode) {
-      renderBotMessage(`🔍 Searching stores for pincode: ${pincode}...`)
+      if (!pincode || pincode.trim().length === 0) {
+        renderBotMessage("⚠️ Please enter a valid pincode.")
+        return
+      }
+    
+      renderBotMessage(`🔍 Searching stores for pincode: ${pincode}`)
+      await fetchNearbyStores({ pincode: pincode.trim() })
+    }
+    
+    async function fetchNearbyStores(params) {
       try {
         showLoader("Finding stores...")
+        const payload = {
+          concept: config.concept,
+          env: config.env,
+          appId: config.appid,
+          userId: config.userid,
+          ...params,
+        }
+    
         const res = await fetch(`${config.backend}/chat/nearby-stores`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pincode: pincode,
-            concept: config.concept,
-            env: config.env,
-            appId: config.appid,
-            userId: config.userid,
-          }),
+          body: JSON.stringify(payload),
         })
+    
         hideLoader()
         const json = await res.json()
-        displayStores(json)
+    
+        if (json?.data?.stores?.length) {
+          json.data.stores.forEach((s) => {
+            chatBody.innerHTML += `
+              <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
+                <b>${s.storeName}</b><br/>
+                ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
+                ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
+                ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
+                <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
+                   style="color:${theme.primary};font-weight:600;text-decoration:none;">📍 View on Map</a>
+              </div>`
+          })
+        } else {
+          renderBotMessage("😔 No nearby stores found.")
+        }
         renderBackToMenu()
       } catch (err) {
         hideLoader()
         renderBotMessage("⚠️ Error fetching store list.")
         renderBackToMenu()
-      }
-    }
-    
-    function displayStores(json) {
-      if (json?.data?.stores?.length) {
-        json.data.stores.forEach((s) => {
-          chatBody.innerHTML += `
-            <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
-              <b>${s.storeName}</b><br/>
-              ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
-              ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
-              ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
-              <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
-                 style="color:${theme.primary};font-weight:600;text-decoration:none;">📍 View on Map</a>
-            </div>`
-        })
-      } else {
-        renderBotMessage("😔 No nearby stores found.")
       }
     }
 
