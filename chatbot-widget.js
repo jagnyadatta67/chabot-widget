@@ -1186,75 +1186,94 @@
     }
     
     function showPincodeOption() {
-      const pincodeContainer = document.createElement("div")
-      pincodeContainer.id = "pincode-fallback"
+      const pincodeContainer = document.createElement("div");
+      pincodeContainer.id = "pincode-fallback";
       pincodeContainer.style.cssText = `
         display: flex;
-        gap: 12px;
+        flex-direction: column;
+        gap: 10px;
         margin: 16px 0;
         padding: 16px;
         border: 2px solid #f5a623;
-        border-radius: 8px;
-        background-color: #fafafa;
-        align-items: center;
-      `
+        border-radius: 10px;
+        background-color: #fff8e7;
+        max-width: 100%;
+      `;
     
-      const label = document.createElement("div")
+      const label = document.createElement("div");
       label.style.cssText = `
-        font-size: 14px;
-        font-weight: 500;
+        font-size: 15px;
+        font-weight: 600;
         color: #333;
-        min-width: 140px;
-        line-height: 1.4;
-      `
-      label.textContent = "No problem! Enter your pincode to find nearby stores:"
+        line-height: 1.5;
+      `;
+      label.textContent = "No problem! Enter your PIN code to find nearby stores:";
     
-      const inputWrapper = document.createElement("div")
+      const inputWrapper = document.createElement("div");
       inputWrapper.style.cssText = `
         display: flex;
-        gap: 8px;
-        flex: 1;
-      `
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        margin-top: 6px;
+      `;
     
-      const input = document.createElement("input")
-      input.type = "text"
-      input.id = "pincode-input"
-      input.placeholder = "Enter pincode"
+      const input = document.createElement("input");
+      input.type = "text";
+      input.id = "pincode-input";
+      input.placeholder = "Enter 6-digit PIN";
+      input.maxLength = 6;
+      input.inputMode = "numeric";
       input.style.cssText = `
-        flex: 1;
+        width: 100%;
         padding: 10px 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 15px;
         font-family: inherit;
-      `
+        outline: none;
+        transition: border-color 0.2s ease;
+      `;
+      input.addEventListener("focus", () => {
+        input.style.borderColor = "#f5a623";
+      });
+      input.addEventListener("blur", () => {
+        input.style.borderColor = "#ccc";
+      });
     
-      const button = document.createElement("button")
-      button.textContent = "Search"
+      const button = document.createElement("button");
+      button.textContent = "Search";
       button.style.cssText = `
-        padding: 10px 24px;
+        width: 100%;
+        padding: 10px 0;
         background-color: #f5a623;
         color: white;
         border: none;
-        border-radius: 4px;
-        font-size: 14px;
+        border-radius: 6px;
+        font-size: 15px;
         font-weight: 600;
         cursor: pointer;
-        white-space: nowrap;
-      `
+        transition: background 0.2s ease;
+      `;
+      button.addEventListener("mouseover", () => (button.style.background = "#e49317"));
+      button.addEventListener("mouseout", () => (button.style.background = "#f5a623"));
     
-      button.addEventListener("click", () => handlePincodeSearch(input.value))
+      // Attach handlers
+      button.addEventListener("click", () => handlePincodeSearch(input.value));
       input.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") handlePincodeSearch(input.value)
-      })
+        if (e.key === "Enter") handlePincodeSearch(input.value);
+      });
     
-      inputWrapper.appendChild(input)
-      inputWrapper.appendChild(button)
-      pincodeContainer.appendChild(label)
-      pincodeContainer.appendChild(inputWrapper)
-      chatBody.appendChild(pincodeContainer)
-      input.focus()
+      // Assemble layout
+      inputWrapper.appendChild(input);
+      inputWrapper.appendChild(button);
+      pincodeContainer.appendChild(label);
+      pincodeContainer.appendChild(inputWrapper);
+      chatBody.appendChild(pincodeContainer);
+    
+      input.focus();
     }
+    
     
     async function handlePincodeSearch(pincode) {
       if (!pincode || pincode.trim().length === 0) {
