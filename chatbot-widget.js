@@ -1177,7 +1177,6 @@
           const { latitude: lat, longitude: lon } = pos.coords;
           renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
           renderBotMessage("Fetching nearby stores...");
-    
           await fetchStores(lat, lon);
         },
         async () => {
@@ -1188,20 +1187,69 @@
     }
     
     /**
-     * Ask user for PIN code manually when location is unavailable.
+     * ✳️ Ask user for PIN code manually when location is unavailable.
      */
     function askForPincode() {
       renderBotMessage(`
-        🚩 Please enter your <b>PIN code</b> to find nearby stores:
-        <div style="margin-top:8px;">
-          <input id="pincodeInput" placeholder="Enter 6-digit PIN" maxlength="6"
-                 style="padding:6px;width:120px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;">
-          <button id="pincodeBtn" style="margin-left:6px;padding:6px 10px;border:none;border-radius:6px;
-                  background:${theme.primary};color:#fff;cursor:pointer;">Find</button>
+        <div style="
+          display:flex;
+          flex-direction:column;
+          align-items:flex-start;
+          gap:10px;
+          padding:6px 4px;
+          max-width:100%;
+        ">
+          <div style="font-size:0.95rem;line-height:1.4;">
+            🚩 <b>Please enter your PIN code</b> to find nearby stores:
+          </div>
+          <div style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            align-items:center;
+            width:100%;
+          ">
+            <input id="pincodeInput"
+              placeholder="Enter 6-digit PIN"
+              maxlength="6"
+              inputmode="numeric"
+              style="
+                flex:1;
+                min-width:120px;
+                max-width:180px;
+                padding:8px 10px;
+                border:1px solid rgba(0,0,0,0.15);
+                border-radius:8px;
+                font-size:0.9rem;
+                outline:none;
+                transition:border-color 0.2s ease;
+              "
+              onfocus="this.style.borderColor='${theme.primary}'"
+              onblur="this.style.borderColor='rgba(0,0,0,0.15)'"
+            />
+            <button id="pincodeBtn"
+              style="
+                flex-shrink:0;
+                padding:8px 16px;
+                border:none;
+                border-radius:8px;
+                background:${theme.primary};
+                color:#fff;
+                font-weight:600;
+                font-size:0.9rem;
+                cursor:pointer;
+                transition:background 0.2s ease;
+              "
+              onmouseover="this.style.background='${shadeColor(theme.primary, -10)}'"
+              onmouseout="this.style.background='${theme.primary}'"
+            >
+              Find
+            </button>
+          </div>
         </div>
       `);
     
-      // Wait for user to click Find
+      // Wait for user to click "Find"
       setTimeout(() => {
         const btn = document.getElementById("pincodeBtn");
         const input = document.getElementById("pincodeInput");
@@ -1215,51 +1263,14 @@
             }
     
             renderBotMessage(`📦 Searching stores near PIN code <b>${pincode}</b>...`);
-    
-            try {
-              showLoader("Finding stores...");
-              const res = await fetch(`${config.backend}/chat/nearby-stores`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  pincode,
-                  concept: config.concept,
-                  env: config.env,
-                  appId: config.appid,
-                  userId: config.userid,
-                }),
-              });
-    
-              hideLoader();
-              const json = await res.json();
-              if (json?.data?.stores?.length) {
-                json.data.stores.forEach((s) => {
-                  chatBody.innerHTML += `
-                    <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
-                      <b>${s.storeName}</b><br/>
-                      ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
-                      ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
-                      ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
-                      <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
-                         style="color:${theme.primary};font-weight:600;text-decoration:none;">📍 View on Map</a>
-                    </div>`;
-                });
-              } else {
-                renderBotMessage("😔 No stores found near this PIN code.");
-              }
-              renderBackToMenu();
-            } catch (err) {
-              hideLoader();
-              renderBotMessage("⚠️ Error fetching stores for this PIN code.");
-              renderBackToMenu();
-            }
+            await fetchStoresByPincode(pincode);
           });
         }
-      }, 200);
+      }, 300);
     }
     
     /**
-     * Common function to fetch nearby stores using lat/lon.
+     * 🔍 Fetch stores based on latitude/longitude
      */
     async function fetchStores(lat, lon) {
       try {
@@ -1279,29 +1290,91 @@
     
         hideLoader();
         const json = await res.json();
-    
-        if (json?.data?.stores?.length) {
-          json.data.stores.forEach((s) => {
-            chatBody.innerHTML += `
-              <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
-                <b>${s.storeName}</b><br/>
-                ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
-                ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
-                ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
-                <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
-                   style="color:${theme.primary};font-weight:600;text-decoration:none;">📍 View on Map</a>
-              </div>`;
-          });
-        } else {
-          renderBotMessage("😔 No nearby stores found.");
-        }
-        renderBackToMenu();
+        renderStoreResults(json?.data?.stores);
       } catch (err) {
         hideLoader();
         renderBotMessage("⚠️ Error fetching store list.");
         renderBackToMenu();
       }
     }
+    
+    /**
+     * 📍 Fetch stores based on PIN code
+     */
+    async function fetchStoresByPincode(pincode) {
+      try {
+        showLoader("Finding stores...");
+        const res = await fetch(`${config.backend}/chat/nearby-stores`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pincode,
+            concept: config.concept,
+            env: config.env,
+            appId: config.appid,
+            userId: config.userid,
+          }),
+        });
+    
+        hideLoader();
+        const json = await res.json();
+        renderStoreResults(json?.data?.stores);
+      } catch (err) {
+        hideLoader();
+        renderBotMessage("⚠️ Error fetching stores for this PIN code.");
+        renderBackToMenu();
+      }
+    }
+    
+    /**
+     * 🧱 Render store results in chat bubbles
+     */
+    function renderStoreResults(stores) {
+      if (stores?.length) {
+        stores.forEach((s) => {
+          chatBody.innerHTML += `
+            <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};padding:8px 10px;">
+              <div style="font-weight:700;margin-bottom:4px;">${s.storeName}</div>
+              <div style="font-size:0.9rem;line-height:1.4;color:#222;">
+                ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
+                ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
+                ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
+              </div>
+              <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}"
+                 target="_blank"
+                 style="display:inline-block;margin-top:4px;color:${theme.primary};
+                        font-weight:600;text-decoration:none;">📍 View on Map</a>
+            </div>`;
+        });
+      } else {
+        renderBotMessage("😔 No nearby stores found.");
+      }
+      renderBackToMenu();
+    }
+    
+    /**
+     * Small color shade helper (darken for hover)
+     */
+    function shadeColor(color, percent) {
+      const f = parseInt(color.slice(1), 16),
+        t = percent < 0 ? 0 : 255,
+        p = percent < 0 ? percent * -1 : percent,
+        R = f >> 16,
+        G = (f >> 8) & 0x00ff,
+        B = f & 0x0000ff;
+      return (
+        "#" +
+        (
+          0x1000000 +
+          (Math.round((t - R) * p) + R) * 0x10000 +
+          (Math.round((t - G) * p) + G) * 0x100 +
+          (Math.round((t - B) * p) + B)
+        )
+          .toString(16)
+          .slice(1)
+      );
+    }
+    
     
 
     createFloatingButton(chatWindow, showGreeting)
