@@ -1184,7 +1184,6 @@
         },
       )
     }
-    
     function showPincodeOption() {
       const pincodeContainer = document.createElement("div");
       pincodeContainer.id = "pincode-fallback";
@@ -1194,7 +1193,7 @@
         gap: 10px;
         margin: 16px 0;
         padding: 16px;
-        border: 2px solid #f5a623;
+        border: 2px solid ${theme.primary};
         border-radius: 10px;
         background-color: #fff8e7;
         max-width: 100%;
@@ -1235,7 +1234,7 @@
         transition: border-color 0.2s ease;
       `;
       input.addEventListener("focus", () => {
-        input.style.borderColor = "#f5a623";
+        input.style.borderColor = theme.primary;
       });
       input.addEventListener("blur", () => {
         input.style.borderColor = "#ccc";
@@ -1246,7 +1245,7 @@
       button.style.cssText = `
         width: 100%;
         padding: 10px 0;
-        background-color:${theme.primary};
+        background-color: ${theme.primary};
         color: white;
         border: none;
         border-radius: 6px;
@@ -1255,8 +1254,8 @@
         cursor: pointer;
         transition: background 0.2s ease;
       `;
-      button.addEventListener("mouseover", () => (button.style.background = "#e49317"));
-      button.addEventListener("mouseout", () => (button.style.background = "#f5a623"));
+      button.addEventListener("mouseover", () => (button.style.opacity = "0.9"));
+      button.addEventListener("mouseout", () => (button.style.opacity = "1"));
     
       // Attach handlers
       button.addEventListener("click", () => handlePincodeSearch(input.value));
@@ -1273,6 +1272,7 @@
     
       input.focus();
     }
+    
     
     
     async function handlePincodeSearch(pincode) {
