@@ -4,7 +4,7 @@
 
   // --- Config ---
   const config = {
-    backend: "https://uatchatbot.landmarkshops.in/api/chat",
+    backend: " http://localhost:8080/api/chat",
     userid: scriptTag?.getAttribute("data-userid") || window.CHATBOT_CONFIG?.userid || "UNKNOWN_USER",
     concept: (scriptTag?.getAttribute("data-concept") || window.CHATBOT_CONFIG?.concept || "LIFESTYLE").toUpperCase(),
     appid: scriptTag?.getAttribute("data-appid") || window.CHATBOT_CONFIG?.appid || "UNKNOWN_APP",
