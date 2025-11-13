@@ -2,9 +2,9 @@
   const scriptTag =
     document.currentScript || Array.from(document.querySelectorAll('script[src*="chatbot-widget.js"]')).pop()
 
-  // --- Config ---
+  // --- Config ---  backend: "https://6c1c2bbb6935.ngrok-free.app/api/chat"  https://uatchatbot.landmarkshops.in/api/chat",
   const config = {
-    backend: "https://uatchatbot.landmarkshops.in/api/chat",
+    backend: "https://6c1c2bbb6935.ngrok-free.app/api/chat",
     userid: scriptTag?.getAttribute("data-userid") || window.CHATBOT_CONFIG?.userid || "UNKNOWN_USER",
     concept: (scriptTag?.getAttribute("data-concept") || window.CHATBOT_CONFIG?.concept || "LIFESTYLE").toUpperCase(),
     appid: scriptTag?.getAttribute("data-appid") || window.CHATBOT_CONFIG?.appid || "UNKNOWN_APP",
