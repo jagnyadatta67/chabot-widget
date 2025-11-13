@@ -1007,12 +1007,27 @@
       inputContainer.classList.remove("active")
       renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`)
       renderBotMessage("Please choose an option below 👇")
+    
       try {
         const menus = await fetchMenus()
-        menus.forEach((menu) => renderMenuButton(menu))
+    
+        // ✅ Sort top-level menus by displayOrder
+        menus.sort((a, b) => a.displayOrder - b.displayOrder)
+    
+        // ✅ Also sort subMenus inside each menu
+        menus.forEach(menu => {
+          if (menu.subMenus && menu.subMenus.length > 0) {
+            menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder)
+          }
+        })
+    
+        // Render menus in sorted order
+        menus.forEach(menu => renderMenuButton(menu))
       } catch (e) {
+        console.error("Menu load failed:", e)
         renderBotMessage("⚠️ Unable to load menu right now.")
       }
+    
       renderBackToMenu()
     }
 
@@ -1054,7 +1069,7 @@
       clearBody()
       renderUserMessage(sub.title)
       if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
-        await handleNearbyStore()
+        await handleNearbyStore()m
         renderBackToMenu()
         return
       }
