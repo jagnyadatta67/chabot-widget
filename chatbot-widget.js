@@ -1069,7 +1069,7 @@
       clearBody()
       renderUserMessage(sub.title)
       if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
-        await handleNearbyStore()m
+        await handleNearbyStore()
         renderBackToMenu()
         return
       }
