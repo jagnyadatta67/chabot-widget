@@ -1065,13 +1065,13 @@
     
       // --- STEP 3: Replace the loading bubble with greeting ---
       if (userName) {
-        updateBotMessage(loadingId, `👋 Hi <strong>${userName}</strong>!`);
+        updateBotMessage(loadingId, `👋 Hi  &nbsp;<strong>${userName}</strong>!`);
       } else {
         updateBotMessage(loadingId, `👋 Hi!`);
       }
     
       // Second line
-      renderBotMessage(`Welcome to <strong>${config.concept}</strong> Chat Service.`);
+      renderBotMessage(`Welcome to &nbsp; <strong>${config.concept}</strong> Chat Service.`);
     
       // Info text
       renderBotMessage("Please choose an option below 👇");
