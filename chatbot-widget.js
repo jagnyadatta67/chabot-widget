@@ -814,12 +814,7 @@
       if (payload.chat_message && payload.chat_message.trim() !== "") {
         renderBotMessage(payload.chat_message)
       } else {
-        renderBotMessage("<b>🧾 Customer Details:</b>")
-        chatBody.innerHTML += `
-          <div class="bubble bot-bubble">
-            <b>Name:</b> ${payload.customerName || "N/A"}<br/>
-            <b>Mobile:</b> ${payload.mobileNo || "N/A"}
-          </div>`
+       
 
         if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
           payload.orderDetailsList.forEach((o) => {
