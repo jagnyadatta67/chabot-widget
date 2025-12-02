@@ -1066,7 +1066,7 @@
       }
     
       // Second line
-      renderBotMessage(`Welcome to &nbsp; <strong>${config.concept}</strong> Chat Service.);
+      renderBotMessage(`Welcome to &nbsp; <strong>${config.concept}</strong> Chat Service.`);
   
     
       // --- STEP 4: Load Menus ---
