@@ -1019,7 +1019,8 @@
       inputContainer.classList.remove("active");
     
       // --- STEP 0: Show loading bubble ---
-      const loadingId = renderBotMessage("⏳ Checking your profile...");
+      const loadingId = renderBotMessage("✨ Just a moment… I'm fetching your profile.");
+
       startTypingAnimation(loadingId);
     
       let userName = null;
@@ -1156,7 +1157,7 @@
         return
       }
       if (sub.title.toLowerCase().includes("order") && sub.title.toLowerCase().includes("track")) {
-        await handleNearbyStore()
+        await handleOrderTrackMenu()
         renderBackToMenu()
         return
       }
