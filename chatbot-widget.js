@@ -1023,7 +1023,7 @@ async function showGreeting() {
       body: JSON.stringify({
         message: "get my profile",
         question: "get my profile",
-        userId: config.userId || "",
+        userId: config.userid || "",
         concept: config.concept || "LIFESTYLE",
         env: config.env || "uat5",
         appid: "Desktop"
@@ -1044,10 +1044,10 @@ async function showGreeting() {
   // --- STEP 2: SHOW GREETING BASED ON LOGIN STATUS ---
   if (userName) {
     // Logged in user
-    renderBotMessage(`👋 Hi <b>${userName}</b>! Welcome to <b>${config.concept}</b> Chat Service`);
+    renderBotMessage(`👋 Hi  <b>${userName}</b>  Welcome to <b>${config.concept}</b> Chat Service`);
   } else {
     // Anonymous user
-    renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`);
+    renderBotMessage(`👋 Hi  Welcome to <b>${config.concept}</b> Chat Service`);
   }
 
   renderBotMessage("Please choose an option below 👇");
