@@ -713,13 +713,30 @@
 
     const clearBody = () => (chatBody.innerHTML = "")
 
-    const renderBotMessage = (msg) => {
-      const bubble = document.createElement("div")
-      bubble.className = "bubble bot-bubble"
-      bubble.innerHTML = msg.replace(/\n/g, "<br/>")
-      chatBody.appendChild(bubble)
-      chatBody.scrollTop = chatBody.scrollHeight
-    }
+    const renderBotMessage = (msg, id = null) => {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble bot-bubble";
+      bubble.innerHTML = msg.replace(/\n/g, "<br/>");
+    
+      if (!id) {
+        id = "msg-" + Date.now() + "-" + Math.floor(Math.random() * 99999);
+      }
+      bubble.id = id;
+    
+      chatBody.appendChild(bubble);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    
+      return id; // return message id for updates
+    };
+    
+    // Update any message bubble
+    const updateBotMessage = (id, newMsg) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerHTML = newMsg.replace(/\n/g, "<br/>");
+      }
+    };
+    
 
     const renderUserMessage = (msg) => {
       const bubble = document.createElement("div")
@@ -1002,80 +1019,101 @@
       }
     }
 
-async function showGreeting() {
-  clearBody()
-  inputContainer.classList.remove("active")
-
-  // --- STEP 1: CALL CHAT API TO CHECK LOGIN ---
-  let userName = null
-
-  try {
-    const response = await fetch("https://uatchatbot.landmarkshops.in/api/chat/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "sec-ch-ua-platform": "\"macOS\"",
-        "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
-        "sec-ch-ua-mobile": "?0",
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-        "Referer": "https://uat5.lifestylestores.com/"
-      },
-      body: JSON.stringify({
-        message: "get my profile",
-        question: "get my profile",
-        userId: config.userid || "",
-        concept: config.concept || "LIFESTYLE",
-        env: config.env || "uat5",
-        appid: "Desktop"
-      })
-    });
-
-    const result = await response.json();
-
-    // If logged in → extract name
-    if (result?.data?.customerProfile?.name) {
-      userName = result.data.customerProfile.name;
-    }
-
-  } catch (err) {
-    console.error("Profile check failed:", err);
-  }
-
-  // --- STEP 2: SHOW GREETING BASED ON LOGIN STATUS ---
-  if (userName) {
-    // Logged in user
-    renderBotMessage(
-      `👋 Hi <strong>${userName}</strong>, welcome to <strong>${config.concept}</strong> Chat Service!`
-    )
+    async function showGreeting() {
+      clearBody();
+      inputContainer.classList.remove("active");
     
-  } else {
-    // Anonymous user
-    renderBotMessage(`👋 Hi  Welcome to <b>${config.concept}</b> Chat Service`);
-  }
-
-  renderBotMessage("Please choose an option below 👇");
-
-  // --- STEP 3: LOAD MENUS AS USUAL ---
-  try {
-    const menus = await fetchMenus();
-
-    menus.sort((a, b) => a.displayOrder - b.displayOrder);
-
-    menus.forEach(menu => {
-      if (menu.subMenus?.length) {
-        menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder);
+      // --- STEP 0: Show loading bubble ---
+      const loadingId = renderBotMessage("⏳ Checking your profile...");
+      startTypingAnimation(loadingId);
+    
+      let userName = null;
+    
+      try {
+        const response = await fetch("https://uatchatbot.landmarkshops.in/api/chat/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "Referer": "https://uat5.lifestylestores.com/"
+          },
+          body: JSON.stringify({
+            message: "get my profile",
+            question: "get my profile",
+            userId: config.userid || "",
+            concept: config.concept || "LIFESTYLE",
+            env: config.env || "uat5",
+            appid: "Desktop"
+          })
+        });
+    
+        const result = await response.json();
+    
+        if (result?.data?.customerProfile?.name) {
+          userName = result.data.customerProfile.name;
+        }
+    
+      } catch (err) {
+        console.error("Profile check failed:", err);
       }
-    });
+    
+      // --- STEP 2: Stop typing animation ---
+      stopTypingAnimation(loadingId);
+    
+      // --- STEP 3: Replace the loading bubble with greeting ---
+      if (userName) {
+        updateBotMessage(loadingId, `👋 Hi <strong>${userName}</strong>!`);
+      } else {
+        updateBotMessage(loadingId, `👋 Hi!`);
+      }
+    
+      // Second line
+      renderBotMessage(`Welcome to <strong>${config.concept}</strong> Chat Service.`);
+    
+      // Info text
+      renderBotMessage("Please choose an option below 👇");
+    
+      // --- STEP 4: Load Menus ---
+      try {
+        const menus = await fetchMenus();
+    
+        menus.sort((a, b) => a.displayOrder - b.displayOrder);
+    
+        menus.forEach(menu => {
+          if (menu.subMenus?.length) {
+            menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder);
+          }
+        });
+    
+        menus.forEach(menu => renderMenuButton(menu));
+    
+      } catch (e) {
+        console.error("Menu load failed:", e);
+        renderBotMessage("⚠️ Unable to load menu right now.");
+      }
+    
+      renderBackToMenu();
+    }
+    
+    let typingIntervals = {};
 
-    menus.forEach(menu => renderMenuButton(menu));
-  } catch (e) {
-    console.error("Menu load failed:", e);
-    renderBotMessage("⚠️ Unable to load menu right now.");
-  }
-
-  renderBackToMenu();
-}
-
+    function startTypingAnimation(id) {
+      let dots = 0;
+      typingIntervals[id] = setInterval(() => {
+        dots = (dots + 1) % 4;
+        updateBotMessage(id, `⏳ Checking your profile${".".repeat(dots)}`);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }, 450);
+    }
+    
+    function stopTypingAnimation(id) {
+      clearInterval(typingIntervals[id]);
+      delete typingIntervals[id];
+    }
+    
 
     const renderMenuButton = (menu) => {
       const btn = document.createElement("button")
