@@ -1002,34 +1002,77 @@
       }
     }
 
-    async function showGreeting() {
-      clearBody()
-      inputContainer.classList.remove("active")
-      renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`)
-      renderBotMessage("Please choose an option below 👇")
-    
-      try {
-        const menus = await fetchMenus()
-    
-        // ✅ Sort top-level menus by displayOrder
-        menus.sort((a, b) => a.displayOrder - b.displayOrder)
-    
-        // ✅ Also sort subMenus inside each menu
-        menus.forEach(menu => {
-          if (menu.subMenus && menu.subMenus.length > 0) {
-            menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder)
-          }
-        })
-    
-        // Render menus in sorted order
-        menus.forEach(menu => renderMenuButton(menu))
-      } catch (e) {
-        console.error("Menu load failed:", e)
-        renderBotMessage("⚠️ Unable to load menu right now.")
-      }
-    
-      renderBackToMenu()
+async function showGreeting() {
+  clearBody()
+  inputContainer.classList.remove("active")
+
+  // --- STEP 1: CALL CHAT API TO CHECK LOGIN ---
+  let userName = null
+
+  try {
+    const response = await fetch("https://uatchatbot.landmarkshops.in/api/chat/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+        "Referer": "https://uat5.lifestylestores.com/"
+      },
+      body: JSON.stringify({
+        message: "get my profile",
+        question: "get my profile",
+        userId: config.userId || "",
+        concept: config.concept || "LIFESTYLE",
+        env: config.env || "uat5",
+        appid: "Desktop"
+      })
+    });
+
+    const result = await response.json();
+
+    // If logged in → extract name
+    if (result?.data?.customerProfile?.name) {
+      userName = result.data.customerProfile.name;
     }
+
+  } catch (err) {
+    console.error("Profile check failed:", err);
+  }
+
+  // --- STEP 2: SHOW GREETING BASED ON LOGIN STATUS ---
+  if (userName) {
+    // Logged in user
+    renderBotMessage(`👋 Hi <b>${userName}</b>! Welcome to <b>${config.concept}</b> Chat Service`);
+  } else {
+    // Anonymous user
+    renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`);
+  }
+
+  renderBotMessage("Please choose an option below 👇");
+
+  // --- STEP 3: LOAD MENUS AS USUAL ---
+  try {
+    const menus = await fetchMenus();
+
+    menus.sort((a, b) => a.displayOrder - b.displayOrder);
+
+    menus.forEach(menu => {
+      if (menu.subMenus?.length) {
+        menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder);
+      }
+    });
+
+    menus.forEach(menu => renderMenuButton(menu));
+  } catch (e) {
+    console.error("Menu load failed:", e);
+    renderBotMessage("⚠️ Unable to load menu right now.");
+  }
+
+  renderBackToMenu();
+}
+
 
     const renderMenuButton = (menu) => {
       const btn = document.createElement("button")
