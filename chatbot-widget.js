@@ -1098,7 +1098,7 @@
       let dots = 0;
       typingIntervals[id] = setInterval(() => {
         dots = (dots + 1) % 4;
-        updateBotMessage(id, `⏳ Checking your profile${".".repeat(dots)}`);
+        updateBotMessage(id, `⏳ ⏳ One moment while I set things up…${".".repeat(dots)}`);
         chatBody.scrollTop = chatBody.scrollHeight;
       }, 450);
     }
