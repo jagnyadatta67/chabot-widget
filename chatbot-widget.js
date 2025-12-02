@@ -1044,7 +1044,10 @@ async function showGreeting() {
   // --- STEP 2: SHOW GREETING BASED ON LOGIN STATUS ---
   if (userName) {
     // Logged in user
-    renderBotMessage(`👋 Hi  <b>${userName}</b>  Welcome to <b>${config.concept}</b> Chat Service`);
+    renderBotMessage(
+      `👋 Hi <strong>${userName}</strong>, welcome to <strong>${config.concept}</strong> Chat Service!`
+    )
+    
   } else {
     // Anonymous user
     renderBotMessage(`👋 Hi  Welcome to <b>${config.concept}</b> Chat Service`);
