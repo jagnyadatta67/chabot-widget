@@ -1155,6 +1155,11 @@
         renderBackToMenu()
         return
       }
+      if (sub.title.toLowerCase().includes("order") && sub.title.toLowerCase().includes("track")) {
+        await handleNearbyStore()
+        renderBackToMenu()
+        return
+      }
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`)
       inputContainer.classList.add("active")
       sendButton.onclick = () => {
@@ -1166,6 +1171,49 @@
       }
       renderBackToMenu()
     }
+
+
+    async function handleOrderTrackMenu() {
+      showLoader("Checking your orders...");
+    
+      const url = `${config.backend}/chat`;
+    
+      try {
+        const body = {
+          message: "order track",
+          question: "order track",
+          userId: config.userid,
+          concept: config.concept,
+          env: config.env,
+          appid: config.appid
+        };
+    
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+    
+        hideLoader();
+    
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+        const json = await res.json();
+    
+        const payload = typeof json.data === "string"
+          ? { chat_message: json.data }
+          : json.data || json;
+    
+        // 👇 Use your existing logic
+        handleOrderTracking(payload);
+    
+      } catch (err) {
+        hideLoader();
+        console.error("Order tracking error:", err);
+        renderBotMessage("⚠️ Unable to fetch order details. Please try again later.");
+      }
+    }
+    
 
     async function handleGiftCardBalance() {
       renderBotMessage("🎁 Please enter your gift card number below to check your balance:")
