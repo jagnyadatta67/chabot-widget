@@ -814,7 +814,7 @@
       if (payload.chat_message && payload.chat_message.trim() !== "") {
         renderBotMessage(payload.chat_message)
       } else {
-       
+        renderBotMessage("<b>🧾 Order Details:</b>")
 
         if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
           payload.orderDetailsList.forEach((o) => {
@@ -1066,10 +1066,8 @@
       }
     
       // Second line
-      renderBotMessage(`Welcome to &nbsp; <strong>${config.concept}</strong> Chat Service.`);
-    
-      // Info text
-      renderBotMessage("Please choose an option below 👇");
+      renderBotMessage(`Welcome to &nbsp; <strong>${config.concept}</strong> Chat Service. Please choose an option below 👇`);
+  
     
       // --- STEP 4: Load Menus ---
       try {
