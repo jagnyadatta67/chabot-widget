@@ -23,7 +23,7 @@
       logo: "https://assets-cloud.landmarkshops.in/website_images/static-pages/brand_exp/brand2images/logos/prod/lifestyle-logo-136x46.svg",
     },
     MAX: {
-      primary: "#303AB2",
+      primary: "#D1AC88",
       secondary: "#4A55E2",
       dark: "#1a1a1a",
       light: "#f8f9fa",
