@@ -2,9 +2,11 @@
   const scriptTag =
     document.currentScript || Array.from(document.querySelectorAll('script[src*="chatbot-widget.js"]')).pop()
 
-  // --- Config ---  backend: "https://6c1c2bbb6935.ngrok-free.app/api/chat"  https://uatchatbot.landmarkshops.in/api/chat",
+  // --- Config ---
+  // All values are read from data-* attributes on the <script> tag, falling back to window.CHATBOT_CONFIG.
+  // Example: <script src="chatbot-widget.js" data-backend="https://api.example.com/api/chat" data-concept="LIFESTYLE" ...>
   const config = {
-    backend: "http://localhost:8080/api/chat",
+    backend: scriptTag?.getAttribute("data-backend") || window.CHATBOT_CONFIG?.backend || "http://localhost:8080/api/chat",
     userid: scriptTag?.getAttribute("data-userid") || window.CHATBOT_CONFIG?.userid || "UNKNOWN_USER",
     concept: (scriptTag?.getAttribute("data-concept") || window.CHATBOT_CONFIG?.concept || "LIFESTYLE").toUpperCase(),
     appid: scriptTag?.getAttribute("data-appid") || window.CHATBOT_CONFIG?.appid || "UNKNOWN_APP",
@@ -711,6 +713,161 @@
       loader.classList.remove("active")
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // API Layer
+    // All backend communication is centralised here. Call-sites use named
+    // methods (api.chat, api.getMenus, etc.) and receive { data, error }
+    // so they never need to write try/catch themselves.
+    //
+    // The object lives inside initChatWidget so it can call showLoader /
+    // hideLoader, which reference DOM nodes created at widget init time.
+    // ─────────────────────────────────────────────────────────────────────────
+    const api = {
+      /**
+       * Returns the standard request context shared by every endpoint.
+       * @returns {{ userId: string, concept: string, env: string, appid: string }}
+       */
+      _context() {
+        return {
+          userId: config.userid,
+          concept: config.concept,
+          env: config.env,
+          appid: config.appid,
+        }
+      },
+
+      /**
+       * Authenticated GET helper.
+       * @param {string} path  - Path appended to config.backend (e.g. "/menus")
+       * @param {string} [loaderMsg] - Optional loader overlay text; omit for silent requests
+       * @returns {Promise<{ data: any, error: string|null }>}
+       */
+      async _get(path, loaderMsg) {
+        if (loaderMsg) showLoader(loaderMsg)
+        try {
+          const res = await fetch(`${config.backend}${path}`)
+          if (loaderMsg) hideLoader()
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          return { data: await res.json(), error: null }
+        } catch (err) {
+          if (loaderMsg) hideLoader()
+          console.error(`❌ API [GET ${path}]:`, err)
+          return { data: null, error: err.message }
+        }
+      },
+
+      /**
+       * Authenticated POST helper.
+       * @param {string} path   - Path appended to config.backend (e.g. "/chat")
+       * @param {object} body   - JSON request body
+       * @param {string} [loaderMsg] - Optional loader overlay text; omit for silent requests
+       * @returns {Promise<{ data: any, error: string|null }>}
+       */
+      async _post(path, body, loaderMsg) {
+        if (loaderMsg) showLoader(loaderMsg)
+        try {
+          const res = await fetch(`${config.backend}${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          })
+          if (loaderMsg) hideLoader()
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          return { data: await res.json(), error: null }
+        } catch (err) {
+          if (loaderMsg) hideLoader()
+          console.error(`❌ API [POST ${path}]:`, err)
+          return { data: null, error: err.message }
+        }
+      },
+
+      /** Fetch top-level menu items. */
+      getMenus() {
+        return this._get("/menus", "Loading menu...")
+      },
+
+      /**
+       * Fetch sub-menus for a given menu ID.
+       * @param {string|number} menuId
+       */
+      getSubMenus(menuId) {
+        return this._get(`/menus/${menuId}/submenus`, "Loading options...")
+      },
+
+      /**
+       * Silently fetch the logged-in customer's profile.
+       * No loaderMsg is passed so the typing animation acts as the UX indicator.
+       */
+      getProfile() {
+        return this._post("/chat", {
+          ...this._context(),
+          message: "get my profile",
+          question: "get my profile",
+        })
+      },
+
+      /**
+       * Send a user message to the chat endpoint.
+       * @param {string} message - The user's text
+       * @param {{ static?: boolean, [key: string]: any }} [extra] - Extra fields merged into the body.
+       *   Pass { static: true } to route to /chat/ask instead of /chat.
+       */
+      chat(message, extra = {}) {
+        const { static: isStatic, ...extraBody } = extra
+        return this._post(
+          isStatic ? "/chat/ask" : "/chat",
+          { ...this._context(), message, question: message, ...extraBody },
+          "Thinking...",
+        )
+      },
+
+      /** Fetch the user's order list. */
+      trackOrders() {
+        return this._post(
+          "/chat",
+          { ...this._context(), message: "order track", question: "order track" },
+          "Checking your orders...",
+        )
+      },
+
+      /**
+       * Check the balance of a gift card.
+       * Note: uses env "www" as required by the gift card service (not config.env).
+       * @param {string} cardNumber
+       */
+      checkGiftCard(cardNumber) {
+        return this._post(
+          "/chat",
+          {
+            ...this._context(),
+            env: "www", // gift card endpoint requires "www" regardless of config.env
+            cardNumber,
+            message: "Check my gift card balance",
+          },
+          "Fetching balance...",
+        )
+      },
+
+      /**
+       * Find stores near a location or pincode.
+       * @param {{ latitude?: number, longitude?: number, pincode?: string }} params
+       */
+      getNearbyStores(params) {
+        return this._post(
+          "/chat/nearby-stores",
+          {
+            concept: config.concept,
+            env: config.env,
+            appId: config.appid, // note: backend expects capital-I "appId"
+            userId: config.userid,
+            ...params,
+          },
+          "Finding stores...",
+        )
+      },
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const clearBody = () => (chatBody.innerHTML = "")
 
     const renderBotMessage = (msg, id = null) => {
@@ -760,34 +917,6 @@
         footer.parentNode.insertBefore(backBtn, footer)
       } else {
         chatWindow.appendChild(backBtn)
-      }
-    }
-
-    async function fetchMenus() {
-      try {
-        showLoader("Loading menu...")
-        const res = await fetch(`${config.backend}/menus`)
-        hideLoader()
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      } catch (e) {
-        hideLoader()
-        console.error("❌ Menu fetch error:", e)
-        throw e
-      }
-    }
-
-    async function fetchSubMenus(menuId) {
-      try {
-        showLoader("Loading options...")
-        const res = await fetch(`${config.backend}/menus/${menuId}/submenus`)
-        hideLoader()
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      } catch (e) {
-        hideLoader()
-        console.error("❌ Submenu fetch error:", e)
-        throw e
       }
     }
 
@@ -982,114 +1111,54 @@
     }
 
     async function sendMessage(type, userMessage) {
-      const url = `${config.backend}${type === "static" ? "/chat/ask" : "/chat"}`
-      try {
-        showLoader("Thinking...")
-        const body = {
-          message: userMessage,
-          question: userMessage,
-          userId: config.userid,
-          concept: config.concept,
-          env: config.env,
-          appid: config.appid,
-        }
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        })
-        hideLoader()
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const json = await res.json()
-        console.log("🧠 Chatbot Response:", json)
-        const intent = json.intent || json.data?.intent || "DEFAULT"
-        const payload = typeof json.data === "string" ? { chat_message: json.data } : json.data || json
-        const handler = INTENT_HANDLERS[intent] || INTENT_HANDLERS.DEFAULT
-        handler(payload)
-      } catch (e) {
-        hideLoader()
-        console.error("❌ Chatbot error:", e)
+      const { data: json, error } = await api.chat(userMessage, { static: type === "static" })
+      if (error || !json) {
         renderBotMessage("⚠️ Something went wrong. Please try again.")
         renderBackToMenu()
+        return
       }
+      console.log("🧠 Chatbot Response:", json)
+      const intent = json.intent || json.data?.intent || "DEFAULT"
+      const payload = typeof json.data === "string" ? { chat_message: json.data } : json.data || json
+      const handler = INTENT_HANDLERS[intent] || INTENT_HANDLERS.DEFAULT
+      handler(payload)
     }
 
     async function showGreeting() {
-      clearBody();
-      inputContainer.classList.remove("active");
-    
-      // --- STEP 0: Show loading bubble ---
-      const loadingId = renderBotMessage("✨ Just a moment… I'm fetching your profile.");
+      clearBody()
+      inputContainer.classList.remove("active")
 
-      startTypingAnimation(loadingId);
-    
-      let userName = null;
-    
-      try {
-        const response = await fetch("http://localhost:8080/api/chat/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
-            "sec-ch-ua-mobile": "?0",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-            "Referer": "https://uat5.lifestylestores.com/"
-          },
-          body: JSON.stringify({
-            message: "get my profile",
-            question: "get my profile",
-            userId: config.userid || "",
-            concept: config.concept || "LIFESTYLE",
-            env: config.env || "uat5",
-            appid: "Desktop"
-          })
-        });
-    
-        const result = await response.json();
-    
-        if (result?.data?.customerProfile?.name) {
-          userName = result.data.customerProfile.name;
-        }
-    
-      } catch (err) {
-        console.error("Profile check failed:", err);
-      }
-    
-      // --- STEP 2: Stop typing animation ---
-      stopTypingAnimation(loadingId);
-    
-      // --- STEP 3: Replace the loading bubble with greeting ---
-      if (userName) {
-        updateBotMessage(loadingId, `👋 Hi  &nbsp;<strong>${userName}</strong>!`);
+      // Show a typing-animated placeholder while the profile loads silently
+      const loadingId = renderBotMessage("✨ Just a moment…")
+      startTypingAnimation(loadingId)
+
+      // api.getProfile() is called without a loaderMsg so the typing animation
+      // acts as the UX indicator instead of the full-screen overlay.
+      const { data: profileResult } = await api.getProfile()
+      const userName = profileResult?.data?.customerProfile?.name || null
+
+      stopTypingAnimation(loadingId)
+
+      // Replace the placeholder with the personalised greeting
+      updateBotMessage(loadingId, userName ? `👋 Hi &nbsp;<strong>${userName}</strong>!` : `👋 Hi!`)
+      renderBotMessage(`Welcome to &nbsp;<strong>${config.concept}</strong> Chat Service.`)
+
+      // Load and render top-level menus
+      const { data: menus, error: menuError } = await api.getMenus()
+      if (menuError || !menus) {
+        renderBotMessage("⚠️ Unable to load menu right now.")
       } else {
-        updateBotMessage(loadingId, `👋 Hi!`);
+        menus
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .forEach((menu) => {
+            if (menu.subMenus?.length) {
+              menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder)
+            }
+            renderMenuButton(menu)
+          })
       }
-    
-      // Second line
-      renderBotMessage(`Welcome to &nbsp; <strong>${config.concept}</strong> Chat Service.`);
-  
-    
-      // --- STEP 4: Load Menus ---
-      try {
-        const menus = await fetchMenus();
-    
-        menus.sort((a, b) => a.displayOrder - b.displayOrder);
-    
-        menus.forEach(menu => {
-          if (menu.subMenus?.length) {
-            menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder);
-          }
-        });
-    
-        menus.forEach(menu => renderMenuButton(menu));
-    
-      } catch (e) {
-        console.error("Menu load failed:", e);
-        renderBotMessage("⚠️ Unable to load menu right now.");
-      }
-    
-      renderBackToMenu();
+
+      renderBackToMenu()
     }
     
     let typingIntervals = {};
@@ -1121,16 +1190,11 @@
       clearBody()
       renderUserMessage(menu.title)
       renderBotMessage(`Fetching options for <b>${menu.title}</b>...`)
-      try {
-        const subs = await fetchSubMenus(menu.id)
-        if (!subs?.length) {
-          renderBotMessage("No sub-options found.")
-          renderBackToMenu()
-          return
-        }
-        subs.forEach((sub) => renderSubmenuButton(sub))
-      } catch (e) {
+      const { data: subs, error } = await api.getSubMenus(menu.id)
+      if (error || !subs?.length) {
         renderBotMessage("⚠️ Unable to load options.")
+      } else {
+        subs.forEach((sub) => renderSubmenuButton(sub))
       }
       renderBackToMenu()
     }
@@ -1175,52 +1239,23 @@
 
 
     async function handleOrderTrackMenu() {
-      showLoader("Checking your orders...");
-    
-      const url = `${config.backend}/chat`;
-    
-      try {
-        const body = {
-          message: "order track",
-          question: "order track",
-          userId: config.userid,
-          concept: config.concept,
-          env: config.env,
-          appid: config.appid
-        };
-    
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
-    
-        hideLoader();
-    
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-        const json = await res.json();
-    
-        const payload = typeof json.data === "string"
-          ? { chat_message: json.data }
-          : json.data || json;
-    
-        // 👇 Use your existing logic
-        handleOrderTracking(payload);
-    
-      } catch (err) {
-        hideLoader();
-        console.error("Order tracking error:", err);
-        renderBotMessage("⚠️ Unable to fetch order details. Please try again later.");
+      const { data: json, error } = await api.trackOrders()
+      if (error || !json) {
+        renderBotMessage("⚠️ Unable to fetch order details. Please try again later.")
+        return
       }
+      const payload = typeof json.data === "string" ? { chat_message: json.data } : json.data || json
+      handleOrderTracking(payload)
     }
     
 
     async function handleGiftCardBalance() {
       renderBotMessage("🎁 Please enter your gift card number below to check your balance:")
 
-      const inputContainer = document.createElement("div")
-      inputContainer.className = "gift-card-input-container"
+      // Note: renamed from inputContainer to giftCardContainer to avoid
+      // shadowing the outer inputContainer (the chat text-input bar).
+      const giftCardContainer = document.createElement("div")
+      giftCardContainer.className = "gift-card-input-container"
 
       const input = document.createElement("input")
       input.type = "text"
@@ -1233,9 +1268,9 @@
       button.className = "gift-card-btn"
       button.textContent = "Check Balance"
 
-      inputContainer.appendChild(input)
-      inputContainer.appendChild(button)
-      chatBody.appendChild(inputContainer)
+      giftCardContainer.appendChild(input)
+      giftCardContainer.appendChild(button)
+      chatBody.appendChild(giftCardContainer)
       chatBody.scrollTop = chatBody.scrollHeight
 
       button.onclick = async () => {
@@ -1249,60 +1284,66 @@
         renderUserMessage(`🔢 Gift Card: ${cardNumber}`)
         renderBotMessage("💳 Checking your gift card balance...")
 
-        try {
-          showLoader("Fetching balance...")
+        const { data: json, error } = await api.checkGiftCard(cardNumber)
 
-          const res = await fetch(`${config.backend}/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              cardNumber,
-              concept: config.concept,
-              env: "www",
-              appid: config.appid,
-              userId: config.userid,
-              message: "Check my gift card balance",
-            }),
-          })
+        if (error || !json) {
+          renderBotMessage("⚠️ Something went wrong while checking your gift card balance.")
+          renderBackToMenu()
+          return
+        }
 
-          hideLoader()
+        const data = json?.data || json
+        const g = data?.giftCardDetails || data
 
-          const json = await res.json()
-          const data = json?.data || json
-          const g = data?.giftCardDetails || data
-
-          if (g?.errorOccurred) {
-            const errorReason = g?.errors?.[0]?.message || ""
-            if (errorReason === "lmg.giftcard.card.not.found") {
-              renderBotMessage("❌ Invalid gift card number. Please check and try again.")
-            } else if (errorReason === "lmg.giftcard.client.server.error") {
-              renderBotMessage("⚠️ Gift card service is currently unavailable. Please try later.")
-            } else {
-              renderBotMessage("😔 Unable to fetch your gift card balance. Please try again later.")
-            }
-          } else if (g?.balanceAmount != null) {
-            renderBotMessage(data.chat_message || "Here's your gift card balance:")
-            chatBody.innerHTML += `
-              <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
-                <b>Card Number:</b> ${g.cardNumber || "N/A"}<br/>
-                <b>Status:</b> ${g.status || "N/A"}<br/>
-                <b>Message:</b> ${g.message || "N/A"}<br/>
-                <b>Balance:</b> ₹${g.balanceAmount?.toFixed(2) || "0.00"} ${g.currency || "INR"}
-              </div>
-            `
+        if (g?.errorOccurred) {
+          const errorReason = g?.errors?.[0]?.message || ""
+          if (errorReason === "lmg.giftcard.card.not.found") {
+            renderBotMessage("❌ Invalid gift card number. Please check and try again.")
+          } else if (errorReason === "lmg.giftcard.client.server.error") {
+            renderBotMessage("⚠️ Gift card service is currently unavailable. Please try later.")
           } else {
             renderBotMessage("😔 Unable to fetch your gift card balance. Please try again later.")
           }
-
-          renderBackToMenu()
-          chatBody.scrollTop = chatBody.scrollHeight
-        } catch (err) {
-          hideLoader()
-          console.error("❌ Gift card balance error:", err)
-          renderBotMessage("⚠️ Something went wrong while checking your gift card balance.")
-          renderBackToMenu()
+        } else if (g?.balanceAmount != null) {
+          renderBotMessage(data.chat_message || "Here's your gift card balance:")
+          chatBody.innerHTML += `
+            <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
+              <b>Card Number:</b> ${g.cardNumber || "N/A"}<br/>
+              <b>Status:</b> ${g.status || "N/A"}<br/>
+              <b>Message:</b> ${g.message || "N/A"}<br/>
+              <b>Balance:</b> ₹${g.balanceAmount?.toFixed(2) || "0.00"} ${g.currency || "INR"}
+            </div>
+          `
+        } else {
+          renderBotMessage("😔 Unable to fetch your gift card balance. Please try again later.")
         }
+
+        renderBackToMenu()
+        chatBody.scrollTop = chatBody.scrollHeight
       }
+    }
+
+    /**
+     * Render a list of store cards into the chat body.
+     * Extracted to avoid duplicating the rendering logic across GPS and pincode flows.
+     * @param {object} json - Raw API response from api.getNearbyStores
+     * @returns {boolean} true if stores were rendered, false if none found
+     */
+    function renderStoreCards(json) {
+      const stores = json?.data?.stores
+      if (!stores?.length) return false
+      stores.forEach((s) => {
+        chatBody.innerHTML += `
+          <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
+            <b>${s.storeName}</b><br/>
+            ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
+            ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
+            ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
+            <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
+               style="color:${theme.primary};font-weight:600;text-decoration:none;">📍 View on Map</a>
+          </div>`
+      })
+      return true
     }
 
     async function handleNearbyStore() {
@@ -1317,7 +1358,11 @@
           const { latitude: lat, longitude: lon } = pos.coords
           renderBotMessage(`✅ Found location (${lat.toFixed(4)}, ${lon.toFixed(4)})`)
           renderBotMessage("Fetching nearby stores...")
-          await fetchNearbyStores({ latitude: lat, longitude: lon })
+          const { data: json, error } = await api.getNearbyStores({ latitude: lat, longitude: lon })
+          if (error || !renderStoreCards(json)) {
+            renderBotMessage("😔 No nearby stores found.")
+          }
+          renderBackToMenu()
         },
         () => {
           renderBotMessage("❌ Permission denied for location.")
@@ -1421,52 +1466,12 @@
         renderBotMessage("⚠️ Please enter a valid pincode.")
         return
       }
-    
       renderBotMessage(`🔍 Searching stores for pincode: ${pincode}`)
-      await fetchNearbyStores({ pincode: pincode.trim() })
-    }
-    
-    async function fetchNearbyStores(params) {
-      try {
-        showLoader("Finding stores...")
-        const payload = {
-          concept: config.concept,
-          env: config.env,
-          appId: config.appid,
-          userId: config.userid,
-          ...params,
-        }
-    
-        const res = await fetch(`${config.backend}/chat/nearby-stores`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-    
-        hideLoader()
-        const json = await res.json()
-    
-        if (json?.data?.stores?.length) {
-          json.data.stores.forEach((s) => {
-            chatBody.innerHTML += `
-              <div class="bubble bot-bubble" style="border:1px solid ${theme.primary};">
-                <b>${s.storeName}</b><br/>
-                ${s.line1 || ""} ${s.line2 ? "- " + s.line2 : ""} ${s.postalCode ? "- " + s.postalCode : ""}<br/>
-                ${s.contactNumber ? "📞 " + s.contactNumber + "<br/>" : ""}
-                ${s.workingHours ? "🕒 " + s.workingHours + "<br/>" : ""}
-                <a href="https://www.google.com/maps?q=${s.latitude},${s.longitude}" target="_blank"
-                   style="color:${theme.primary};font-weight:600;text-decoration:none;">📍 View on Map</a>
-              </div>`
-          })
-        } else {
-          renderBotMessage("😔 No nearby stores found.")
-        }
-        renderBackToMenu()
-      } catch (err) {
-        hideLoader()
-        renderBotMessage("⚠️ Error fetching store list.")
-        renderBackToMenu()
+      const { data: json, error } = await api.getNearbyStores({ pincode: pincode.trim() })
+      if (error || !renderStoreCards(json)) {
+        renderBotMessage("😔 No nearby stores found.")
       }
+      renderBackToMenu()
     }
 
     createFloatingButton(chatWindow, showGreeting)
