@@ -11,6 +11,7 @@
     concept: (scriptTag?.getAttribute("data-concept") || window.CHATBOT_CONFIG?.concept || "LIFESTYLE").toUpperCase(),
     appid: scriptTag?.getAttribute("data-appid") || window.CHATBOT_CONFIG?.appid || "UNKNOWN_APP",
     env: scriptTag?.getAttribute("data-env") || window.CHATBOT_CONFIG?.env || "uat5",
+    apikey: scriptTag?.getAttribute("X-API-Key") || window.CHATBOT_CONFIG?.apikey || "",
   }
 
   console.log("💎 Chatbot Config:", config)
@@ -745,7 +746,9 @@
       async _get(path, loaderMsg) {
         if (loaderMsg) showLoader(loaderMsg)
         try {
-          const res = await fetch(`${config.backend}${path}`)
+          const res = await fetch(`${config.backend}${path}`, {
+            headers: { "X-API-Key": config.apikey },
+          })
           if (loaderMsg) hideLoader()
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           return { data: await res.json(), error: null }
@@ -768,7 +771,7 @@
         try {
           const res = await fetch(`${config.backend}${path}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-API-Key": config.apikey },
             body: JSON.stringify(body),
           })
           if (loaderMsg) hideLoader()
