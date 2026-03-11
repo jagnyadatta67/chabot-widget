@@ -1026,7 +1026,7 @@
       let userName = null;
     
       try {
-        const response = await fetch("https://uatchatbot.landmarkshops.in/api/chat/chat", {
+        const response = await fetch("https://localhost:8080/api/chat/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

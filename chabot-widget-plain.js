@@ -4,7 +4,7 @@
 
   // --- Config ---  backend: "https://6c1c2bbb6935.ngrok-free.app/api/chat"  https://uatchatbot.landmarkshops.in/api/chat",
   const config = {
-    backend: "https://uatchatbot.landmarkshops.in/api/chat",
+    backend: "http://localhost:8080/api/chat",
     userid: scriptTag?.getAttribute("data-userid") || window.CHATBOT_CONFIG?.userid || "UNKNOWN_USER",
     concept: (scriptTag?.getAttribute("data-concept") || window.CHATBOT_CONFIG?.concept || "LIFESTYLE").toUpperCase(),
     appid: scriptTag?.getAttribute("data-appid") || window.CHATBOT_CONFIG?.appid || "UNKNOWN_APP",
@@ -23,7 +23,7 @@
       logo: "https://assets-cloud.landmarkshops.in/website_images/static-pages/brand_exp/brand2images/logos/prod/lifestyle-logo-136x46.svg",
     },
     MAX: {
-      primary: "#303AB2",
+      primary: "#D1AC88",
       secondary: "#4A55E2",
       dark: "#1a1a1a",
       light: "#f8f9fa",
@@ -713,13 +713,30 @@
 
     const clearBody = () => (chatBody.innerHTML = "")
 
-    const renderBotMessage = (msg) => {
-      const bubble = document.createElement("div")
-      bubble.className = "bubble bot-bubble"
-      bubble.innerHTML = msg.replace(/\n/g, "<br/>")
-      chatBody.appendChild(bubble)
-      chatBody.scrollTop = chatBody.scrollHeight
-    }
+    const renderBotMessage = (msg, id = null) => {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble bot-bubble";
+      bubble.innerHTML = msg.replace(/\n/g, "<br/>");
+    
+      if (!id) {
+        id = "msg-" + Date.now() + "-" + Math.floor(Math.random() * 99999);
+      }
+      bubble.id = id;
+    
+      chatBody.appendChild(bubble);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    
+      return id; // return message id for updates
+    };
+    
+    // Update any message bubble
+    const updateBotMessage = (id, newMsg) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerHTML = newMsg.replace(/\n/g, "<br/>");
+      }
+    };
+    
 
     const renderUserMessage = (msg) => {
       const bubble = document.createElement("div")
@@ -797,12 +814,7 @@
       if (payload.chat_message && payload.chat_message.trim() !== "") {
         renderBotMessage(payload.chat_message)
       } else {
-        renderBotMessage("<b>🧾 Customer Details:</b>")
-        chatBody.innerHTML += `
-          <div class="bubble bot-bubble">
-            <b>Name:</b> ${payload.customerName || "N/A"}<br/>
-            <b>Mobile:</b> ${payload.mobileNo || "N/A"}
-          </div>`
+        renderBotMessage("<b>🧾 Order Details:</b>")
 
         if (Array.isArray(payload.orderDetailsList) && payload.orderDetailsList.length > 0) {
           payload.orderDetailsList.forEach((o) => {
@@ -1003,33 +1015,99 @@
     }
 
     async function showGreeting() {
-      clearBody()
-      inputContainer.classList.remove("active")
-      renderBotMessage(`👋 Hi! Welcome to <b>${config.concept}</b> Chat Service`)
-      renderBotMessage("Please choose an option below 👇")
+      clearBody();
+      inputContainer.classList.remove("active");
+    
+      // --- STEP 0: Show loading bubble ---
+      const loadingId = renderBotMessage("✨ Just a moment… I'm fetching your profile.");
+
+      startTypingAnimation(loadingId);
+    
+      let userName = null;
     
       try {
-        const menus = await fetchMenus()
+        const response = await fetch("https://localhost:8080/api/chat/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "Referer": "https://uat5.lifestylestores.com/"
+          },
+          body: JSON.stringify({
+            message: "get my profile",
+            question: "get my profile",
+            userId: config.userid || "",
+            concept: config.concept || "LIFESTYLE",
+            env: config.env || "uat5",
+            appid: "Desktop"
+          })
+        });
     
-        // ✅ Sort top-level menus by displayOrder
-        menus.sort((a, b) => a.displayOrder - b.displayOrder)
+        const result = await response.json();
     
-        // ✅ Also sort subMenus inside each menu
-        menus.forEach(menu => {
-          if (menu.subMenus && menu.subMenus.length > 0) {
-            menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder)
-          }
-        })
+        if (result?.data?.customerProfile?.name) {
+          userName = result.data.customerProfile.name;
+        }
     
-        // Render menus in sorted order
-        menus.forEach(menu => renderMenuButton(menu))
-      } catch (e) {
-        console.error("Menu load failed:", e)
-        renderBotMessage("⚠️ Unable to load menu right now.")
+      } catch (err) {
+        console.error("Profile check failed:", err);
       }
     
-      renderBackToMenu()
+      // --- STEP 2: Stop typing animation ---
+      stopTypingAnimation(loadingId);
+    
+      // --- STEP 3: Replace the loading bubble with greeting ---
+      if (userName) {
+        updateBotMessage(loadingId, `👋 Hi  &nbsp;<strong>${userName}</strong>!`);
+      } else {
+        updateBotMessage(loadingId, `👋 Hi!`);
+      }
+    
+      // Second line
+      renderBotMessage(`Welcome to &nbsp; <strong>${config.concept}</strong> Chat Service.`);
+  
+    
+      // --- STEP 4: Load Menus ---
+      try {
+        const menus = await fetchMenus();
+    
+        menus.sort((a, b) => a.displayOrder - b.displayOrder);
+    
+        menus.forEach(menu => {
+          if (menu.subMenus?.length) {
+            menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder);
+          }
+        });
+    
+        menus.forEach(menu => renderMenuButton(menu));
+    
+      } catch (e) {
+        console.error("Menu load failed:", e);
+        renderBotMessage("⚠️ Unable to load menu right now.");
+      }
+    
+      renderBackToMenu();
     }
+    
+    let typingIntervals = {};
+
+    function startTypingAnimation(id) {
+      let dots = 0;
+      typingIntervals[id] = setInterval(() => {
+        dots = (dots + 1) % 4;
+        updateBotMessage(id, `⏳ ⏳ One moment while I set things up…${".".repeat(dots)}`);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }, 450);
+    }
+    
+    function stopTypingAnimation(id) {
+      clearInterval(typingIntervals[id]);
+      delete typingIntervals[id];
+    }
+    
 
     const renderMenuButton = (menu) => {
       const btn = document.createElement("button")
@@ -1078,6 +1156,11 @@
         renderBackToMenu()
         return
       }
+      if (sub.title.toLowerCase().includes("order") && sub.title.toLowerCase().includes("track")) {
+        await handleOrderTrackMenu()
+        renderBackToMenu()
+        return
+      }
       renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`)
       inputContainer.classList.add("active")
       sendButton.onclick = () => {
@@ -1089,6 +1172,49 @@
       }
       renderBackToMenu()
     }
+
+
+    async function handleOrderTrackMenu() {
+      showLoader("Checking your orders...");
+    
+      const url = `${config.backend}/chat`;
+    
+      try {
+        const body = {
+          message: "order track",
+          question: "order track",
+          userId: config.userid,
+          concept: config.concept,
+          env: config.env,
+          appid: config.appid
+        };
+    
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+    
+        hideLoader();
+    
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+        const json = await res.json();
+    
+        const payload = typeof json.data === "string"
+          ? { chat_message: json.data }
+          : json.data || json;
+    
+        // 👇 Use your existing logic
+        handleOrderTracking(payload);
+    
+      } catch (err) {
+        hideLoader();
+        console.error("Order tracking error:", err);
+        renderBotMessage("⚠️ Unable to fetch order details. Please try again later.");
+      }
+    }
+    
 
     async function handleGiftCardBalance() {
       renderBotMessage("🎁 Please enter your gift card number below to check your balance:")
