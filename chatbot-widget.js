@@ -784,17 +784,12 @@
         }
       },
 
-      /** Fetch top-level menu items. */
-      getMenus() {
-        return this._get("/menus", "Loading menu...")
-      },
-
       /**
-       * Fetch sub-menus for a given menu ID.
-       * @param {string|number} menuId
+       * Fetch top-level menu items with inline sub-menus for the current concept.
+       * Single call returns the full menu tree — no second round-trip needed.
        */
-      getSubMenus(menuId) {
-        return this._get(`/menus/${menuId}/submenus`, "Loading options...")
+      getMenus() {
+        return this._get(`/menus?concept=${encodeURIComponent(config.concept)}`, "Loading menu...")
       },
 
       /**
@@ -1184,19 +1179,20 @@
     const renderMenuButton = (menu) => {
       const btn = document.createElement("button")
       btn.className = "menu-btn"
-      btn.textContent = menu.title
+      btn.textContent = (menu.icon ? menu.icon + " " : "") + menu.title
       btn.onclick = () => showSubMenus(menu)
       chatBody.appendChild(btn)
     }
 
-    async function showSubMenus(menu) {
+    function showSubMenus(menu) {
       clearBody()
-      renderUserMessage(menu.title)
-      renderBotMessage(`Fetching options for <b>${menu.title}</b>...`)
-      const { data: subs, error } = await api.getSubMenus(menu.id)
-      if (error || !subs?.length) {
-        renderBotMessage("⚠️ Unable to load options.")
+      renderUserMessage((menu.icon ? menu.icon + " " : "") + menu.title)
+      // Sub-menus are already embedded inline — no extra API call needed
+      const subs = menu.subMenus || []
+      if (!subs.length) {
+        renderBotMessage("⚠️ No options available for this menu.")
       } else {
+        renderBotMessage(`Choose an option for <b>${menu.title}</b>:`)
         subs.forEach((sub) => renderSubmenuButton(sub))
       }
       renderBackToMenu()
@@ -1204,38 +1200,48 @@
 
     const renderSubmenuButton = (sub) => {
       const sbtn = document.createElement("button")
-      sbtn.className = `submenu-btn ${sub.type === "dynamic" ? "dynamic" : ""}`
-      sbtn.textContent = sub.title
+      sbtn.className = "submenu-btn"
+      sbtn.textContent = (sub.icon ? sub.icon + " " : "") + sub.title
       sbtn.onclick = () => handleSubmenu(sub)
       chatBody.appendChild(sbtn)
     }
 
+    /**
+     * intentKey dispatch map.
+     *
+     * Each entry maps an intentKey string to an async handler function.
+     * The widget calls the matching handler, or falls back to OPEN_INPUT for
+     * any key that is not listed here (including null / undefined keys).
+     *
+     * To add a new integration, just add a new key → async function entry here.
+     */
+    const SUBMENU_INTENT_HANDLERS = {
+      NEARBY_STORE:        async () => { await handleNearbyStore() },
+      GIFT_CARD_BALANCE:   async () => { await handleGiftCardBalance() },
+      TRACK_ORDER:         async () => { await handleOrderTrackMenu() },
+      // add future intent keys below ↓
+    }
+
     async function handleSubmenu(sub) {
       clearBody()
-      renderUserMessage(sub.title)
-      if (sub.title.toLowerCase().includes("near") && sub.title.toLowerCase().includes("store")) {
-        await handleNearbyStore()
-        renderBackToMenu()
-        return
-      }
-      if (sub.title.toLowerCase().includes("gift") && sub.title.toLowerCase().includes("card")) {
-        await handleGiftCardBalance()
-        renderBackToMenu()
-        return
-      }
-      if (sub.title.toLowerCase().includes("order") && sub.title.toLowerCase().includes("track")) {
-        await handleOrderTrackMenu()
-        renderBackToMenu()
-        return
-      }
-      renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`)
-      inputContainer.classList.add("active")
-      sendButton.onclick = () => {
-        const msg = inputField.value.trim()
-        if (!msg) return
-        renderUserMessage(msg)
-        sendMessage(sub.type, msg)
-        inputField.value = ""
+      renderUserMessage((sub.icon ? sub.icon + " " : "") + sub.title)
+
+      const key     = (sub.intentKey || "").trim().toUpperCase()
+      const handler = SUBMENU_INTENT_HANDLERS[key]
+
+      if (handler) {
+        await handler()
+      } else {
+        // Unknown intentKey → free-text input fallback
+        renderBotMessage(`Please enter your question related to <b>${sub.title}</b>.`)
+        inputContainer.classList.add("active")
+        sendButton.onclick = () => {
+          const msg = inputField.value.trim()
+          if (!msg) return
+          renderUserMessage(msg)
+          sendMessage(null, msg)
+          inputField.value = ""
+        }
       }
       renderBackToMenu()
     }
