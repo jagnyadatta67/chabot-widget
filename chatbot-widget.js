@@ -51,10 +51,16 @@
       return
     }
 
+    // data-userid may arrive already URL-encoded from the server.
+    // Decode first to normalize, then re-encode exactly once.
+    let safeToken
+    try { safeToken = encodeURIComponent(decodeURIComponent(rawToken)) }
+    catch { safeToken = encodeURIComponent(rawToken) }
+
     const url =
       `https://${config.env}.${endpoint.domain}` +
       `/landmarkshopscommercews/v2/${endpoint.path}/chatbot/getTokenDetails` +
-      `?token=${encodeURIComponent(rawToken)}&appId=${encodeURIComponent(config.appid)}`
+      `?token=${safeToken}&appId=${encodeURIComponent(config.appid)}`
 
     try {
       const res = await fetch(url, { method: "POST" })
