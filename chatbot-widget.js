@@ -11,10 +11,66 @@
     concept: (scriptTag?.getAttribute("data-concept") || window.CHATBOT_CONFIG?.concept || "LIFESTYLE").toUpperCase(),
     appid: scriptTag?.getAttribute("data-appid") || window.CHATBOT_CONFIG?.appid || "UNKNOWN_APP",
     env: scriptTag?.getAttribute("data-env") || window.CHATBOT_CONFIG?.env || "uat5",
+    giftcardEnv: scriptTag?.getAttribute("data-giftcard-env") || window.CHATBOT_CONFIG?.giftcardEnv || "www",
     apikey: scriptTag?.getAttribute("X-API-Key") || window.CHATBOT_CONFIG?.apikey || "",
   }
 
   console.log("💎 Chatbot Config:", config)
+
+  // --- Concept → Token endpoint map ---
+  const CONCEPT_TOKEN_ENDPOINTS = {
+    LIFESTYLE:  { domain: "lifestylestores.com", path: "lifestyle"  },
+    MAX:        { domain: "maxfashion.in",        path: "maxin"      },
+    BABYSHOP:   { domain: "babyshop.in",          path: "babyshop"   },
+    HOMECENTRE: { domain: "homecentre.in",         path: "homecentre" },
+  }
+
+  // --- Session state ---
+  // Populated by resolveSession() on load. All API calls read from here.
+  const session = { customerId: "anonymous", accessToken: null }
+
+  async function resolveSession() {
+    const rawToken = config.userid
+    if (!rawToken || rawToken === "UNKNOWN_USER") return
+
+    const cacheKey = `chatbot_session_${config.concept}_${rawToken}`
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        session.customerId  = parsed.customerId  || "anonymous"
+        session.accessToken = parsed.accessToken || null
+        console.log("💎 Session restored from cache:", session.customerId)
+        return
+      } catch {}
+    }
+
+    const endpoint = CONCEPT_TOKEN_ENDPOINTS[config.concept]
+    if (!endpoint) {
+      console.warn("⚠️ No token endpoint configured for concept:", config.concept)
+      return
+    }
+
+    const url =
+      `https://${config.env}.${endpoint.domain}` +
+      `/landmarkshopscommercews/v2/${endpoint.path}/chatbot/getTokenDetails` +
+      `?token=${encodeURIComponent(rawToken)}&appId=${encodeURIComponent(config.appid)}`
+
+    try {
+      const res = await fetch(url, { method: "POST" })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      session.customerId  = data.customerId   || "anonymous"
+      session.accessToken = data.access_token || null
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        customerId:  session.customerId,
+        accessToken: session.accessToken,
+      }))
+      console.log("💎 Session resolved:", session.customerId)
+    } catch (err) {
+      console.warn("⚠️ Token resolution failed, using anonymous:", err.message)
+    }
+  }
 
   // --- Brand Themes ---
   const BRAND_THEMES = {
@@ -730,10 +786,11 @@
        */
       _context() {
         return {
-          userId: config.userid,
-          concept: config.concept,
-          env: config.env,
-          appid: config.appid,
+          userId:      session.customerId,
+          accessToken: session.accessToken,
+          concept:     config.concept,
+          env:         config.env,
+          appid:       config.appid,
         }
       },
 
@@ -838,7 +895,7 @@
           "/chat",
           {
             ...this._context(),
-            env: "www", // gift card endpoint requires "www" regardless of config.env
+            env: config.giftcardEnv,
             cardNumber,
             message: "Check my gift card balance",
           },
@@ -854,10 +911,11 @@
         return this._post(
           "/chat/nearby-stores",
           {
-            concept: config.concept,
-            env: config.env,
-            appId: config.appid, // note: backend expects capital-I "appId"
-            userId: config.userid,
+            concept:     config.concept,
+            env:         config.env,
+            appId:       config.appid, // note: backend expects capital-I "appId"
+            userId:      session.customerId,
+            accessToken: session.accessToken,
             ...params,
           },
           "Finding stores...",
@@ -865,6 +923,8 @@
       },
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    const _cache = { profile: null, menus: null }
 
     const clearBody = () => (chatBody.innerHTML = "")
 
@@ -1126,34 +1186,50 @@
       clearBody()
       inputContainer.classList.remove("active")
 
-      // Show a typing-animated placeholder while the profile loads silently
-      const loadingId = renderBotMessage("✨ Just a moment…")
-      startTypingAnimation(loadingId)
+      let userName = null
 
-      // api.getProfile() is called without a loaderMsg so the typing animation
-      // acts as the UX indicator instead of the full-screen overlay.
-      const { data: profileResult } = await api.getProfile()
-      const userName = profileResult?.data?.customerProfile?.name || null
+      if (_cache.profile !== null && _cache.menus) {
+        // Use cached data — no API calls, no loading animation
+        userName = _cache.profile
+        renderBotMessage(userName ? `👋 Hi &nbsp;<strong>${userName}</strong>!` : `👋 Hi!`)
+      } else {
+        // Show a typing-animated placeholder while the profile loads silently
+        const loadingId = renderBotMessage("✨ Just a moment…")
+        startTypingAnimation(loadingId)
 
-      stopTypingAnimation(loadingId)
+        // api.getProfile() is called without a loaderMsg so the typing animation
+        // acts as the UX indicator instead of the full-screen overlay.
+        const { data: profileResult } = await api.getProfile()
+        userName = profileResult?.data?.customerProfile?.name || null
+        _cache.profile = userName
 
-      // Replace the placeholder with the personalised greeting
-      updateBotMessage(loadingId, userName ? `👋 Hi &nbsp;<strong>${userName}</strong>!` : `👋 Hi!`)
+        stopTypingAnimation(loadingId)
+        updateBotMessage(loadingId, userName ? `👋 Hi &nbsp;<strong>${userName}</strong>!` : `👋 Hi!`)
+      }
+
       renderBotMessage(`Welcome to &nbsp;<strong>${config.concept}</strong> Chat Service.`)
 
-      // Load and render top-level menus
+      // Load and render top-level menus (use cache if available)
+      if (_cache.menus) {
+        _cache.menus.forEach((menu) => renderMenuButton(menu))
+        renderBackToMenu()
+        return
+      }
+
       const { data: menus, error: menuError } = await api.getMenus()
       if (menuError || !menus) {
         renderBotMessage("⚠️ Unable to load menu right now.")
       } else {
-        menus
+        const sorted = menus
           .sort((a, b) => a.displayOrder - b.displayOrder)
-          .forEach((menu) => {
+          .map((menu) => {
             if (menu.subMenus?.length) {
               menu.subMenus.sort((a, b) => a.displayOrder - b.displayOrder)
             }
-            renderMenuButton(menu)
+            return menu
           })
+        _cache.menus = sorted
+        sorted.forEach((menu) => renderMenuButton(menu))
       }
 
       renderBackToMenu()
@@ -1561,6 +1637,10 @@
 
     return chatWindow
   }
+
+  // Resolve session token immediately — runs in parallel with DOM init.
+  // By the time the user clicks the chat button, it will already be settled.
+  resolveSession()
 
   if (document.readyState === "loading") {
     window.addEventListener("DOMContentLoaded", initChatWidget)
