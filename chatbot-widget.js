@@ -19,10 +19,10 @@
 
   // --- Concept → Token endpoint map ---
   const CONCEPT_TOKEN_ENDPOINTS = {
-    LIFESTYLE:  { domain: "lifestylestores.com", path: "lifestyle"  },
-    MAX:        { domain: "maxfashion.in",        path: "maxin"      },
-    BABYSHOP:   { domain: "babyshop.in",          path: "babyshop"   },
-    HOMECENTRE: { domain: "homecentre.in",         path: "homecentre" },
+    LIFESTYLE:  { domain: "lifestylestores.com", path: "lifestylein"  },
+    MAX:        { domain: "maxfashion.in",        path: "maxin"        },
+    BABYSHOP:   { domain: "babyshop.in",          path: "babyshopin"   },
+    HOMECENTRE: { domain: "homecentre.in",        path: "homecentrein" },
   }
 
   // --- Session state ---
